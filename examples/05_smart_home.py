@@ -40,7 +40,7 @@ from vwire import Vwire, VwireConfig
 # CONFIGURATION
 # =============================================================================
 
-AUTH_TOKEN = "your-device-auth-token-here"
+AUTH_TOKEN = "iot_bLiNAWiSmOdCHf2yTrXHHgqudDgWszKm"
 config = VwireConfig()
 
 # =============================================================================
@@ -92,8 +92,8 @@ def handle_living_room_light(value):
     
     # In real application: GPIO.output(LIVING_ROOM_RELAY, home.living_room_light)
     
-    status = "ON 💡" if home.living_room_light else "OFF ⚫"
-    print(f"🏠 Living Room Light: {status}")
+    status = "ON" if home.living_room_light else "OFF"
+    print(f"[HOME] Living Room Light: {status}")
     
     # Send feedback
     device.virtual_write(13, f"Living room {status}")
@@ -104,8 +104,8 @@ def handle_bedroom_light(value):
     """Control bedroom light from dashboard switch."""
     home.bedroom_light = (value == "1")
     
-    status = "ON 💡" if home.bedroom_light else "OFF ⚫"
-    print(f"🛏️  Bedroom Light: {status}")
+    status = "ON" if home.bedroom_light else "OFF"
+    print(f"[HOME] Bedroom Light: {status}")
     
     device.virtual_write(13, f"Bedroom {status}")
 
@@ -132,7 +132,7 @@ def handle_fan_speed(value):
         home.fan_speed = max(0, min(3, home.fan_speed))
         
         speed_names = ["OFF", "LOW", "MEDIUM", "HIGH"]
-        print(f"🌀 Fan speed: {speed_names[home.fan_speed]}")
+        print(f"[FAN] Speed: {speed_names[home.fan_speed]}")
         device.virtual_write(13, f"Fan: {speed_names[home.fan_speed]}")
         
     except ValueError:
@@ -201,8 +201,8 @@ def send_sensor_data():
     
     # Simulate door
     if simulate_door():
-        status = "OPENED 🚪" if home.door_open else "CLOSED 🔒"
-        print(f"🚪 Door {status}")
+        status = "OPENED" if home.door_open else "CLOSED"
+        print(f"[DOOR] Status: {status}")
     
     # Send to dashboard
     device.virtual_write(10, home.current_temp)
@@ -219,15 +219,15 @@ def print_status():
     timestamp = datetime.now().strftime("%H:%M:%S")
     print()
     print(f"{'='*50}")
-    print(f"🏠 Smart Home Status - {timestamp}")
+    print(f"Smart Home Status - {timestamp}")
     print(f"{'='*50}")
-    print(f"  Living Room: {'💡 ON' if home.living_room_light else '⚫ OFF'}")
-    print(f"  Bedroom:     {'💡 ON' if home.bedroom_light else '⚫ OFF'}")
+    print(f"  Living Room: {'ON' if home.living_room_light else 'OFF'}")
+    print(f"  Bedroom:     {'ON' if home.bedroom_light else 'OFF'}")
     print(f"  Temperature: [TEMP]  {home.current_temp}C (target: {home.thermostat_target}C)")
-    print(f"  HVAC:        {'🔥' if home.hvac_mode == 'heating' else '❄️' if home.hvac_mode == 'cooling' else '⏸️'} {home.hvac_mode.upper()}")
-    print(f"  Fan:         🌀 {['OFF', 'LOW', 'MED', 'HIGH'][home.fan_speed]}")
-    print(f"  Motion:      {'[MOTION] DETECTED' if home.motion_detected else '[OK] Clear'}")
-    print(f"  Door:        {'🚪 OPEN' if home.door_open else '🔒 Closed'}")
+    print(f"  HVAC:        {home.hvac_mode.upper()}")
+    print(f"  Fan:         {['OFF', 'LOW', 'MED', 'HIGH'][home.fan_speed]}")
+    print(f"  Motion:      {'DETECTED' if home.motion_detected else 'Clear'}")
+    print(f"  Door:        {'OPEN' if home.door_open else 'Closed'}")
     print(f"{'='*50}")
     print()
 
@@ -264,7 +264,7 @@ def on_disconnected():
 
 def main():
     print("=" * 60)
-    print("🏠 Vwire IoT - Smart Home Controller")
+    print("Vwire IoT - Smart Home Controller")
     print("=" * 60)
     print()
     print("Dashboard Controls (V0-V3):")
