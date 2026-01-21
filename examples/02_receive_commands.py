@@ -29,7 +29,7 @@ from vwire import Vwire, VwireConfig
 # CONFIGURATION
 # =============================================================================
 
-AUTH_TOKEN = "your-device-auth-token-here"
+AUTH_TOKEN = "iot_bLiNAWiSmOdCHf2yTrXHHgqudDgWszKm"
 
 # Use secure connection (default)
 config = VwireConfig()
