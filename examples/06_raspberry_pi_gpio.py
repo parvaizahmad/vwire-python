@@ -196,13 +196,6 @@ def handle_pwm_brightness(value):
     except ValueError:
         print(f"Invalid PWM value: {value}")
 
-
-@device.on_digital_write(17)
-def handle_direct_led(value):
-    """Direct digital pin control (alternative method)."""
-    GPIO.output(LED_PIN, GPIO.HIGH if value else GPIO.LOW)
-    print(f"Direct LED control: {'HIGH' if value else 'LOW'}")
-
 # =============================================================================
 # SENSOR READING TASKS (Pi → Dashboard)
 # =============================================================================
