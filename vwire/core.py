@@ -202,12 +202,13 @@ class Vwire:
     
     def _setup_mqtt_client(self) -> None:
         """Setup MQTT client with appropriate settings."""
-        import random
-        import uuid
+        import hashlib
         transport = "websockets" if self._config.use_websocket else "tcp"
-        # Use UUID for truly unique client ID to avoid session takeover
-        unique_id = str(uuid.uuid4())[:8]
-        client_id = f"vwire-py-{unique_id}"
+        
+        # Use a stable client ID based on auth token hash (not random)
+        # This ensures the same device always uses the same client ID
+        token_hash = hashlib.md5(self._auth_token.encode()).hexdigest()[:12]
+        client_id = f"vwire-py-{token_hash}"
         
         if PAHO_V2:
             self._mqtt = mqtt.Client(
@@ -225,8 +226,8 @@ class Vwire:
                 clean_session=True
             )
         
-        # Disable automatic reconnection - we'll handle it manually if needed
-        self._mqtt.reconnect_delay_set(min_delay=5, max_delay=30)
+        # Disable automatic reconnection - we'll stay connected or fail cleanly
+        self._mqtt.reconnect_delay_set(min_delay=60, max_delay=120)
         
         # WebSocket path
         if self._config.use_websocket:
@@ -293,16 +294,16 @@ class Vwire:
                 self._config.mqtt_port,
                 keepalive=self._config.keepalive
             )
-            self._mqtt.loop_start()
             
-            # Wait for connection
+            # Use loop() in a polling fashion to wait for connection
+            # Don't use loop_start() here - run() will handle the event loop
             start = time.time()
             while self._state == ConnectionState.CONNECTING:
+                self._mqtt.loop(timeout=0.1)
                 if (time.time() - start) > timeout:
                     logger.error("Connection timeout")
                     self._state = ConnectionState.DISCONNECTED
                     return False
-                time.sleep(0.1)
             
             return self._state == ConnectionState.CONNECTED
             
@@ -318,10 +319,14 @@ class Vwire:
         Example:
             device.disconnect()
         """
+        if self._state == ConnectionState.DISCONNECTED:
+            return
         logger.info("Disconnecting...")
         self._timer.stop()
-        self._mqtt.loop_stop()
-        self._mqtt.disconnect()
+        try:
+            self._mqtt.disconnect()
+        except:
+            pass
         self._state = ConnectionState.DISCONNECTED
     
     def run(self, blocking: bool = True) -> None:
@@ -344,9 +349,13 @@ class Vwire:
         
         if blocking:
             try:
-                self._mqtt.loop_forever()
+                # Keep running as long as we're connected
+                while self._state == ConnectionState.CONNECTED:
+                    self._mqtt.loop(timeout=1.0)
+                    
             except KeyboardInterrupt:
                 logger.info("Interrupted by user")
+            finally:
                 self.disconnect()
         else:
             # loop_start already called in connect()
@@ -446,7 +455,7 @@ class Vwire:
             True if request was sent
         """
         topic = f"vwire/{self._auth_token}/sync"
-        result = self._mqtt.publish(topic, "", qos=1)
+        result = self._mqtt.publish(topic, "all", qos=1)
         return result.rc == mqtt.MQTT_ERR_SUCCESS
     
     # ========== Event Handlers ==========
@@ -634,11 +643,22 @@ class Vwire:
     
     def _on_disconnect(self, client, userdata, rc):
         """Handle MQTT disconnection."""
+        prev_state = self._state
         self._state = ConnectionState.DISCONNECTED
         
         if rc != 0:
-            logger.warning(f"Unexpected disconnection (code: {rc})")
-            self._state = ConnectionState.RECONNECTING
+            # Disconnect codes:
+            # 0 = Clean disconnect
+            # 1 = Protocol error
+            # 2 = Identifier rejected (reconnected too fast)
+            # 7 = Session taken over (duplicate connection)
+            disconnect_reasons = {
+                1: "Protocol error",
+                2: "Client identifier rejected", 
+                7: "Session taken over by another connection",
+            }
+            reason = disconnect_reasons.get(rc, f"Unknown error (code: {rc})")
+            logger.warning(f"Unexpected disconnection: {reason}")
         
         # Call user callback
         if self._on_disconnected_callback:
