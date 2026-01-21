@@ -29,7 +29,7 @@ from vwire import Vwire, VwireConfig
 # 1. Log in at https://vwireiot.com
 # 2. Create a new device or select existing one
 # 3. Copy the Auth Token
-AUTH_TOKEN = "yourtokenhere"
+AUTH_TOKEN = "iot_bLiNAWiSmOdCHf2yTrXHHgqudDgWszKm"
 
 # Server configuration (default uses secure TLS connection)
 # For local development, use: config = VwireConfig.development("localhost")

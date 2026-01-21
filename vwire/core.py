@@ -587,10 +587,10 @@ class Vwire:
             self._reconnect_count = 0
             logger.info(f"Connected to {self._config.server}")
             
-            # Subscribe to device topics
-            topic = f"vwire/{self._auth_token}/pin/#"
-            client.subscribe(topic, qos=1)
-            logger.debug(f"Subscribed to {topic}")
+            # Subscribe to command topics (server sends commands to /cmd/)
+            cmd_topic = f"vwire/{self._auth_token}/cmd/#"
+            client.subscribe(cmd_topic, qos=1)
+            logger.debug(f"Subscribed to {cmd_topic}")
             
             # Subscribe to property updates
             prop_topic = f"vwire/{self._auth_token}/prop/#"
@@ -631,12 +631,16 @@ class Vwire:
     def _on_message(self, client, userdata, msg):
         """Handle incoming MQTT messages."""
         try:
-            # Parse topic: vwire/{token}/pin/{pin}
+            # Parse topic: vwire/{token}/cmd/{pin}
             parts = msg.topic.split("/")
             
-            if len(parts) >= 4 and parts[2] == "pin":
+            if len(parts) >= 4 and parts[2] == "cmd":
                 pin_str = parts[3]
                 value = msg.payload.decode("utf-8")
+                
+                # Normalize pin format - add V prefix if just a number
+                if pin_str.isdigit():
+                    pin_str = f"V{pin_str}"
                 
                 # Only process virtual pins (V0-V255)
                 if not pin_str.startswith("V"):
