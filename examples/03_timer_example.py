@@ -64,19 +64,19 @@ def send_temperature():
     """Send temperature reading to V0."""
     temp = read_temperature()
     device.virtual_write(0, temp)
-    print(f"🌡️  Temperature: {temp}°C → V0")
+    print(f"[TEMP]  Temperature: {temp}C → V0")
 
 def send_humidity():
     """Send humidity reading to V1."""
     humidity = read_humidity()
     device.virtual_write(1, humidity)
-    print(f"💧 Humidity: {humidity}% → V1")
+    print(f"[HUM] Humidity: {humidity}% → V1")
 
 def send_pressure():
     """Send pressure reading to V2."""
     pressure = read_pressure()
     device.virtual_write(2, pressure)
-    print(f"🔵 Pressure: {pressure} hPa → V2")
+    print(f"[PRES] Pressure: {pressure} hPa → V2")
 
 def check_buttons():
     """Check button states (runs frequently)."""
@@ -98,7 +98,7 @@ def heartbeat():
 @device.on_connected
 def on_connected():
     """Called when connected - setup timers here."""
-    print("✅ Connected!")
+    print("[OK] Connected!")
     print("Setting up timers...")
     
     # Schedule temperature reading every 5 seconds

@@ -117,8 +117,8 @@ def handle_thermostat(value):
         home.thermostat_target = float(value)
         home.thermostat_target = max(16, min(30, home.thermostat_target))
         
-        print(f"🌡️  Thermostat set to: {home.thermostat_target}°C")
-        device.virtual_write(13, f"Target: {home.thermostat_target}°C")
+        print(f"[TEMP]  Thermostat set to: {home.thermostat_target}C")
+        device.virtual_write(13, f"Target: {home.thermostat_target}C")
         
     except ValueError:
         print(f"Invalid thermostat value: {value}")
@@ -197,7 +197,7 @@ def send_sensor_data():
         motion_cooldown -= 1
     elif simulate_motion():
         motion_cooldown = 10  # Keep motion active for 10 cycles
-        print("🚶 Motion detected!")
+        print("[MOTION] Motion detected!")
     
     # Simulate door
     if simulate_door():
@@ -223,10 +223,10 @@ def print_status():
     print(f"{'='*50}")
     print(f"  Living Room: {'💡 ON' if home.living_room_light else '⚫ OFF'}")
     print(f"  Bedroom:     {'💡 ON' if home.bedroom_light else '⚫ OFF'}")
-    print(f"  Temperature: 🌡️  {home.current_temp}°C (target: {home.thermostat_target}°C)")
+    print(f"  Temperature: [TEMP]  {home.current_temp}C (target: {home.thermostat_target}C)")
     print(f"  HVAC:        {'🔥' if home.hvac_mode == 'heating' else '❄️' if home.hvac_mode == 'cooling' else '⏸️'} {home.hvac_mode.upper()}")
     print(f"  Fan:         🌀 {['OFF', 'LOW', 'MED', 'HIGH'][home.fan_speed]}")
-    print(f"  Motion:      {'🚶 DETECTED' if home.motion_detected else '✅ Clear'}")
+    print(f"  Motion:      {'[MOTION] DETECTED' if home.motion_detected else '[OK] Clear'}")
     print(f"  Door:        {'🚪 OPEN' if home.door_open else '🔒 Closed'}")
     print(f"{'='*50}")
     print()
@@ -239,7 +239,7 @@ def print_status():
 @device.on_connected
 def on_connected():
     """Setup when connected."""
-    print("✅ Connected to Vwire server!")
+    print("[OK] Connected to Vwire server!")
     
     # Send sensor data every 2 seconds
     device.timer.set_interval(2000, send_sensor_data)
@@ -255,7 +255,7 @@ def on_connected():
 @device.on_disconnected
 def on_disconnected():
     """Handle disconnection."""
-    print("❌ Disconnected from server!")
+    print("[ERROR] Disconnected from server!")
 
 
 # =============================================================================
@@ -270,7 +270,7 @@ def main():
     print("Dashboard Controls (V0-V3):")
     print("  V0: Living Room Light (switch)")
     print("  V1: Bedroom Light (switch)")
-    print("  V2: Thermostat Target (slider, 16-30°C)")
+    print("  V2: Thermostat Target (slider, 16-30C)")
     print("  V3: Fan Speed (slider, 0-3)")
     print()
     print("Sensor Data (V10-V14):")
@@ -286,7 +286,7 @@ def main():
     # Connect
     print("Connecting...")
     if not device.connect():
-        print("❌ Failed to connect!")
+        print("[ERROR] Failed to connect!")
         return
     
     print()
@@ -297,10 +297,10 @@ def main():
         device.run()
         
     except KeyboardInterrupt:
-        print("\n\n⏹️  Shutting down smart home...")
+        print("\n\n[STOP]  Shutting down smart home...")
     finally:
         device.disconnect()
-        print("✅ Disconnected.")
+        print("[OK] Disconnected.")
 
 
 if __name__ == "__main__":

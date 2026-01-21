@@ -55,10 +55,10 @@ def main():
     # Connect to server
     print("Connecting to Vwire server...")
     if not device.connect():
-        print("❌ Failed to connect! Check your auth token and network.")
+        print("[ERROR] Failed to connect! Check your auth token and network.")
         return
     
-    print("✅ Connected successfully!")
+    print("[OK] Connected successfully!")
     print()
     print("Sending sensor data every 2 seconds...")
     print("Press Ctrl+C to stop")
@@ -78,16 +78,16 @@ def main():
             device.virtual_write(2, light_level)    # V2 = Light level
             
             # Print status
-            print(f"📤 Sent - Temp: {temperature}°C | Humidity: {humidity}% | Light: {light_level}")
+            print(f"[SENT] Temp: {temperature}C | Humidity: {humidity}% | Light: {light_level}")
             
             # Wait before next reading
             time.sleep(2)
             
     except KeyboardInterrupt:
-        print("\n\n⏹️  Stopping...")
+        print("\n\n[STOP] Stopping...")
     finally:
         device.disconnect()
-        print("✅ Disconnected.")
+        print("[OK] Disconnected.")
 
 
 # =============================================================================

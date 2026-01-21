@@ -45,7 +45,7 @@ try:
     import RPi.GPIO as GPIO
     ON_RASPBERRY_PI = True
 except ImportError:
-    print("⚠️  RPi.GPIO not found. Running in simulation mode.")
+    print("[WARN]  RPi.GPIO not found. Running in simulation mode.")
     ON_RASPBERRY_PI = False
     
     # Mock GPIO for testing on non-Pi systems
@@ -208,7 +208,7 @@ def send_sensor_data():
     if temp is not None:
         device.virtual_write(2, temp)
         device.virtual_write(3, humidity)
-        print(f"🌡️  Temp: {temp}°C | 💧 Humidity: {humidity}%")
+        print(f"[TEMP]  Temp: {temp}C | [HUM] Humidity: {humidity}%")
 
 
 def check_button():
@@ -233,7 +233,7 @@ def check_button():
 @device.on_connected
 def on_connected():
     """Setup timers when connected."""
-    print("✅ Connected to Vwire server!")
+    print("[OK] Connected to Vwire server!")
     
     # Read sensors every 5 seconds
     device.timer.set_interval(5000, send_sensor_data)
@@ -248,7 +248,7 @@ def on_connected():
 @device.on_disconnected
 def on_disconnected():
     """Handle disconnection."""
-    print("❌ Disconnected from server!")
+    print("[ERROR] Disconnected from server!")
 
 # =============================================================================
 # MAIN
@@ -282,7 +282,7 @@ def main():
     # Connect
     print("Connecting to Vwire server...")
     if not device.connect():
-        print("❌ Failed to connect!")
+        print("[ERROR] Failed to connect!")
         GPIO.cleanup()
         return
     
@@ -294,13 +294,13 @@ def main():
         device.run()
         
     except KeyboardInterrupt:
-        print("\n\n⏹️  Stopping...")
+        print("\n\n[STOP]  Stopping...")
     finally:
         # Cleanup
         pwm.stop()
         GPIO.cleanup()
         device.disconnect()
-        print("✅ GPIO cleaned up. Disconnected.")
+        print("[OK] GPIO cleaned up. Disconnected.")
 
 
 if __name__ == "__main__":

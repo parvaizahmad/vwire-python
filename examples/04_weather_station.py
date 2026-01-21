@@ -12,7 +12,7 @@ This example demonstrates:
 - Status messages
 
 Pin Mapping:
-    V0 - Temperature (°C)
+    V0 - Temperature (C)
     V1 - Humidity (%)
     V2 - Pressure (hPa)
     V3 - Wind Speed (km/h)
@@ -178,15 +178,15 @@ def send_weather_data():
     device.virtual_write(10, f"Updated at {timestamp}")
     
     # Print to console
-    print(f"[{timestamp}] 🌡️ {temp:5.1f}°C | 💧 {humidity:4.1f}% | "
-          f"🔵 {pressure:6.1f}hPa | 💨 {wind_speed:4.1f}km/h @ {wind_dir:3d}° | "
+    print(f"[{timestamp}] [TEMP] {temp:5.1f}C | [HUM] {humidity:4.1f}% | "
+          f"[PRES] {pressure:6.1f}hPa | [WIND] {wind_speed:4.1f}km/h @ {wind_dir:3d}deg | "
           f"🌧️ {rain:3.1f}mm | ☀️ UV:{uv:3.1f} | 💡 {light:5d}lux")
 
 
 @device.on_connected
 def on_connected():
     """Setup timer when connected."""
-    print("✅ Connected to Vwire server!")
+    print("[OK] Connected to Vwire server!")
     
     # Send data every 5 seconds
     device.timer.set_interval(SEND_INTERVAL, send_weather_data)
@@ -205,11 +205,11 @@ def main():
     print("=" * 80)
     print()
     print("Pin Mapping:")
-    print("  V0: Temperature (°C)")
+    print("  V0: Temperature (C)")
     print("  V1: Humidity (%)")
     print("  V2: Pressure (hPa)")
     print("  V3: Wind Speed (km/h)")
-    print("  V4: Wind Direction (°)")
+    print("  V4: Wind Direction (deg)")
     print("  V5: Rain (mm)")
     print("  V6: UV Index")
     print("  V7: Light Level (lux)")
@@ -221,7 +221,7 @@ def main():
     # Connect
     print("Connecting...")
     if not device.connect():
-        print("❌ Failed to connect!")
+        print("[ERROR] Failed to connect!")
         return
     
     print()
@@ -232,10 +232,10 @@ def main():
         device.run()
         
     except KeyboardInterrupt:
-        print("\n\n⏹️  Stopping weather station...")
+        print("\n\n[STOP]  Stopping weather station...")
     finally:
         device.disconnect()
-        print("✅ Disconnected.")
+        print("[OK] Disconnected.")
 
 
 if __name__ == "__main__":

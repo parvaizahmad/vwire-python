@@ -208,33 +208,33 @@ def run_mqtt_logger(auth_token: str, server: str, port: int,
         # Log to console
         ts = reading.timestamp.strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{ts}] #{reading_count} | "
-              f"🌡️ {reading.temperature}°C | "
-              f"💧 {reading.humidity}% | "
-              f"🔵 {reading.pressure}hPa | "
+              f"[TEMP] {reading.temperature}C | "
+              f"[HUM] {reading.humidity}% | "
+              f"[PRES] {reading.pressure}hPa | "
               f"CO2: {reading.co2}ppm | "
-              f"PM2.5: {reading.pm25}μg/m³")
+              f"PM2.5: {reading.pm25}ug/m3")
     
     @device.on_connected
     def on_connected():
-        print("✅ Connected to server!")
+        print("[OK] Connected to server!")
         device.timer.set_interval(interval * 1000, send_reading)
         send_reading()  # Send immediately
     
     @device.on_disconnected
     def on_disconnected():
-        print("⚠️  Disconnected! Data will be buffered locally.")
+        print("[WARN]  Disconnected! Data will be buffered locally.")
     
     # Connect and run
     print(f"Connecting to {server}:{port}...")
     if not device.connect(timeout=30):
-        print("❌ Failed to connect!")
+        print("[ERROR] Failed to connect!")
         return
     
     try:
         device.run()
     except KeyboardInterrupt:
-        print(f"\n\n📊 Total readings: {reading_count}")
-        print(f"📁 Buffered readings: {buffer.size}")
+        print(f"\n\n[STATS] Total readings: {reading_count}")
+        print(f"[FILE] Buffered readings: {buffer.size}")
     finally:
         device.disconnect()
 
@@ -274,18 +274,18 @@ def run_http_logger(auth_token: str, server: str, port: int,
             # Send via HTTP
             if client.write_batch(data):
                 ts = reading.timestamp.strftime("%Y-%m-%d %H:%M:%S")
-                print(f"[{ts}] #{reading_count} ✅ Sent | "
-                      f"🌡️ {reading.temperature}°C | "
-                      f"💧 {reading.humidity}%")
+                print(f"[{ts}] #{reading_count} [OK] Sent | "
+                      f"[TEMP] {reading.temperature}C | "
+                      f"[HUM] {reading.humidity}%")
             else:
-                print(f"[#{reading_count}] ❌ Send failed - buffering locally")
+                print(f"[#{reading_count}] [ERROR] Send failed - buffering locally")
                 buffer.add(reading)
             
             time.sleep(interval)
             
     except KeyboardInterrupt:
-        print(f"\n\n📊 Total readings: {reading_count}")
-        print(f"📁 Buffered readings: {buffer.size}")
+        print(f"\n\n[STATS] Total readings: {reading_count}")
+        print(f"[FILE] Buffered readings: {buffer.size}")
 
 
 # =============================================================================
@@ -343,7 +343,7 @@ Examples:
     
     # Print configuration
     print("=" * 60)
-    print("📊 Vwire IoT Data Logger")
+    print("[STATS] Vwire IoT Data Logger")
     print("=" * 60)
     print(f"Server:   {args.server}:{args.port}")
     print(f"Mode:     {args.mode.upper()}")

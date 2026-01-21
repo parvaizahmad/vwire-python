@@ -141,7 +141,7 @@ def handle_servo(value):
     try:
         state.servo_angle = int(float(value))
         state.servo_angle = max(0, min(180, state.servo_angle))
-        print(f"🔧 Servo angle: {state.servo_angle}°")
+        print(f"🔧 Servo angle: {state.servo_angle}deg")
         
     except ValueError:
         print(f"Invalid servo value: {value}")
@@ -154,7 +154,7 @@ def handle_servo(value):
 @device.on_connected
 def on_connected():
     """Called when device connects to server."""
-    print("✅ Connected to Vwire server!")
+    print("[OK] Connected to Vwire server!")
     print("   Syncing pin values...")
     device.sync_all()
 
@@ -162,7 +162,7 @@ def on_connected():
 @device.on_disconnected
 def on_disconnected():
     """Called when device disconnects from server."""
-    print("❌ Disconnected from server!")
+    print("[ERROR] Disconnected from server!")
 
 
 # =============================================================================

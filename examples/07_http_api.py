@@ -68,15 +68,15 @@ def example_single_write():
     
     Simplest use case - send one value.
     """
-    print("📤 Single Write Example")
+    print("[SENT] Single Write Example")
     print("-" * 40)
     
     temperature = round(22 + random.uniform(-5, 5), 1)
     
     if client.virtual_write(0, temperature):
-        print(f"✅ Sent temperature: {temperature}°C to V0")
+        print(f"[OK] Sent temperature: {temperature}C to V0")
     else:
-        print("❌ Failed to send data")
+        print("[ERROR] Failed to send data")
     
     print()
 
@@ -87,7 +87,7 @@ def example_multiple_writes():
     
     Good when you need to send different types of data.
     """
-    print("📤 Multiple Writes Example")
+    print("[SENT] Multiple Writes Example")
     print("-" * 40)
     
     # Simulate sensor readings
@@ -102,10 +102,10 @@ def example_multiple_writes():
     success &= client.virtual_write(2, pressure)
     
     if success:
-        print(f"✅ Sent: Temp={temperature}°C, Humidity={humidity}%, "
+        print(f"[OK] Sent: Temp={temperature}C, Humidity={humidity}%, "
               f"Pressure={pressure}hPa")
     else:
-        print("⚠️  Some writes failed")
+        print("[WARN]  Some writes failed")
     
     print()
 
@@ -116,7 +116,7 @@ def example_batch_write():
     
     More efficient when sending multiple values at once.
     """
-    print("📤 Batch Write Example")
+    print("[SENT] Batch Write Example")
     print("-" * 40)
     
     # Prepare batch data
@@ -129,11 +129,11 @@ def example_batch_write():
     }
     
     if client.write_batch(data):
-        print("✅ Batch data sent:")
+        print("[OK] Batch data sent:")
         for pin, value in data.items():
             print(f"   {pin}: {value}")
     else:
-        print("❌ Batch write failed")
+        print("[ERROR] Batch write failed")
     
     print()
 
@@ -144,7 +144,7 @@ def example_periodic_logging():
     
     Typical pattern for data logger applications.
     """
-    print("📤 Periodic Logging Example (5 readings)")
+    print("[SENT] Periodic Logging Example (5 readings)")
     print("-" * 40)
     
     for i in range(5):
@@ -157,9 +157,9 @@ def example_periodic_logging():
         success2 = client.virtual_write(1, humidity)
         
         if success1 and success2:
-            print(f"[{i+1}/5] ✅ Temp: {temp}°C, Humidity: {humidity}%")
+            print(f"[{i+1}/5] [OK] Temp: {temp}C, Humidity: {humidity}%")
         else:
-            print(f"[{i+1}/5] ❌ Send failed")
+            print(f"[{i+1}/5] [ERROR] Send failed")
         
         if i < 4:  # Don't wait after last reading
             time.sleep(2)
@@ -179,9 +179,9 @@ def example_read_pin():
     value = client.virtual_read(0)
     
     if value is not None:
-        print(f"✅ V0 current value: {value}")
+        print(f"[OK] V0 current value: {value}")
     else:
-        print("❌ Failed to read pin (or no value stored)")
+        print("[ERROR] Failed to read pin (or no value stored)")
     
     print()
 
@@ -192,17 +192,17 @@ def example_device_info():
     
     Retrieve device metadata from server.
     """
-    print("ℹ️  Device Info Example")
+    print("[INFO]  Device Info Example")
     print("-" * 40)
     
     info = client.get_device_info()
     
     if info:
-        print("✅ Device info:")
+        print("[OK] Device info:")
         for key, value in info.items():
             print(f"   {key}: {value}")
     else:
-        print("❌ Failed to get device info")
+        print("[ERROR] Failed to get device info")
     
     print()
 
@@ -213,13 +213,13 @@ def example_connectivity_check():
     
     Useful before sending data to verify server is reachable.
     """
-    print("🔌 Connectivity Check")
+    print("[CONN] Connectivity Check")
     print("-" * 40)
     
     if client.ping():
-        print("✅ Server is reachable")
+        print("[OK] Server is reachable")
     else:
-        print("❌ Server is not reachable")
+        print("[ERROR] Server is not reachable")
     
     print()
 
@@ -230,7 +230,7 @@ def example_connectivity_check():
 
 def main():
     print("=" * 60)
-    print("📡 Vwire IoT - HTTP API Example")
+    print("[DATA] Vwire IoT - HTTP API Example")
     print("=" * 60)
     print()
     print(f"Server: {SERVER}:{PORT}")
