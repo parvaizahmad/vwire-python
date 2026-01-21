@@ -226,8 +226,12 @@ class Vwire:
                 clean_session=True
             )
         
-        # Disable automatic reconnection - we'll stay connected or fail cleanly
-        self._mqtt.reconnect_delay_set(min_delay=60, max_delay=120)
+        # Disable automatic reconnection completely
+        # Setting very long delays effectively disables auto-reconnect
+        self._mqtt.reconnect_delay_set(min_delay=300, max_delay=600)
+        
+        # Disable reconnection on disconnect by not calling reconnect
+        self._mqtt._reconnect_on_failure = False
         
         # WebSocket path
         if self._config.use_websocket:
