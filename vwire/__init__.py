@@ -29,7 +29,7 @@ Quick Start:
 
 Features:
     - MQTT over TLS (secure by default)
-    - Virtual, Digital, and Analog pin operations
+    - Virtual pin operations (V0-V255)
     - Timer support for periodic tasks
     - Event handlers for incoming commands
     - Automatic reconnection

@@ -68,7 +68,7 @@ def handle_led(value):
     Similar to Arduino:
         VWIRE_WRITE(V0) {
             int value = param.asInt();
-            digitalWrite(LED_PIN, value);
+            // Control your LED via GPIO
         }
     """
     state.led_on = (value == "1")
@@ -90,7 +90,7 @@ def handle_motor_speed(value):
         state.motor_speed = int(float(value))
         print(f"⚙️  Motor speed: {state.motor_speed}")
         
-        # In real application: analogWrite(MOTOR_PIN, state.motor_speed)
+        # In real application: control motor via GPIO or external driver
         
     except ValueError:
         print(f"Invalid motor value: {value}")
@@ -145,17 +145,6 @@ def handle_servo(value):
         
     except ValueError:
         print(f"Invalid servo value: {value}")
-
-
-# Digital pin handler example
-@device.on_digital_write(13)
-def handle_digital_pin(value):
-    """
-    Handle digital pin write from dashboard.
-    
-    Similar to Arduino's direct pin control.
-    """
-    print(f"📍 Digital pin 13: {'HIGH' if value else 'LOW'}")
 
 
 # =============================================================================

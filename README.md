@@ -117,7 +117,7 @@ python 01_basic_send.py
 | Arduino | Python |
 |---------|--------|
 | `Vwire.virtualWrite(V0, value)` | `device.virtual_write(0, value)` |
-| `Vwire.digitalRead(pin)` | `device.digital_read(pin)` |
+| `Vwire.virtualRead(V0)` | `device.virtual_read(0)` |
 | `VWIRE_WRITE(V0) { ... }` | `@device.on_virtual_write(0)` |
 | `timer.setInterval(1000, func)` | `device.timer.set_interval(1000, func)` |
 | `Vwire.begin(auth)` | `device.connect()` |

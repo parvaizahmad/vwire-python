@@ -70,7 +70,7 @@ device.virtual_write(0, value)
 - Initial release
 - `IoTech` MQTT client class
 - `IoTechHTTP` HTTP client class
-- Basic virtual/digital/analog pin operations
+- Virtual pin operations (V0-V255)
 - Decorator-based event handlers
 - Basic examples
 

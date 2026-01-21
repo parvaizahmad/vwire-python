@@ -32,8 +32,6 @@ logger = logging.getLogger("vwire")
 class PinType(Enum):
     """Pin type enumeration."""
     VIRTUAL = "V"
-    DIGITAL = "D"
-    ANALOG = "A"
 
 
 class ConnectionState(Enum):
@@ -118,10 +116,6 @@ class Vwire:
     # Event types (Arduino-compatible constants)
     VIRTUAL_WRITE = "vw"
     VIRTUAL_READ = "vr"
-    DIGITAL_WRITE = "dw"
-    DIGITAL_READ = "dr"
-    ANALOG_WRITE = "aw"
-    ANALOG_READ = "ar"
     
     # Pin constants
     LOW = 0
@@ -129,8 +123,6 @@ class Vwire:
     
     # Max pins
     MAX_VIRTUAL_PINS = 256
-    MAX_DIGITAL_PINS = 32
-    MAX_ANALOG_PINS = 16
     
     def __init__(
         self,
@@ -182,10 +174,6 @@ class Vwire:
         self._handlers: Dict[str, Dict[int, Callable]] = {
             self.VIRTUAL_WRITE: {},
             self.VIRTUAL_READ: {},
-            self.DIGITAL_WRITE: {},
-            self.DIGITAL_READ: {},
-            self.ANALOG_WRITE: {},
-            self.ANALOG_READ: {},
         }
         
         # Connected callback
@@ -442,118 +430,6 @@ class Vwire:
         result = self._mqtt.publish(topic, "", qos=1)
         return result.rc == mqtt.MQTT_ERR_SUCCESS
     
-    # ========== Digital Pin Operations ==========
-    
-    def digital_write(self, pin: int, value: int) -> bool:
-        """
-        Write to a digital pin.
-        
-        Args:
-            pin: Digital pin number (0-31)
-            value: 0 (LOW) or 1 (HIGH)
-            
-        Returns:
-            True if successful
-            
-        Example:
-            device.digital_write(13, Vwire.HIGH)  # Turn LED on
-            device.digital_write(13, Vwire.LOW)   # Turn LED off
-        """
-        if not 0 <= pin < self.MAX_DIGITAL_PINS:
-            logger.warning(f"Invalid digital pin: D{pin}")
-            return False
-        
-        value = 1 if value else 0
-        topic = f"vwire/{self._auth_token}/pin/D{pin}"
-        result = self._mqtt.publish(topic, str(value), qos=1)
-        
-        self._pin_values[f"D{pin}"] = PinValue(
-            value=str(value),
-            timestamp=time.time(),
-            pin_type=PinType.DIGITAL,
-            pin_number=pin
-        )
-        
-        return result.rc == mqtt.MQTT_ERR_SUCCESS
-    
-    def digital_read(self, pin: int) -> Optional[int]:
-        """
-        Read the last known value of a digital pin.
-        
-        Args:
-            pin: Digital pin number
-            
-        Returns:
-            0 or 1, or None if not available
-            
-        Example:
-            state = device.digital_read(13)
-            if state == Vwire.HIGH:
-                print("Pin is HIGH")
-        """
-        pin_value = self._pin_values.get(f"D{pin}")
-        if pin_value:
-            try:
-                return int(pin_value.value)
-            except ValueError:
-                return None
-        return None
-    
-    # ========== Analog Pin Operations ==========
-    
-    def analog_write(self, pin: int, value: int) -> bool:
-        """
-        Write to an analog pin (PWM).
-        
-        Args:
-            pin: Analog pin number (0-15)
-            value: Value (typically 0-255 or 0-1023)
-            
-        Returns:
-            True if successful
-            
-        Example:
-            device.analog_write(0, 128)  # 50% duty cycle
-        """
-        if not 0 <= pin < self.MAX_ANALOG_PINS:
-            logger.warning(f"Invalid analog pin: A{pin}")
-            return False
-        
-        topic = f"vwire/{self._auth_token}/pin/A{pin}"
-        result = self._mqtt.publish(topic, str(int(value)), qos=1)
-        
-        self._pin_values[f"A{pin}"] = PinValue(
-            value=str(int(value)),
-            timestamp=time.time(),
-            pin_type=PinType.ANALOG,
-            pin_number=pin
-        )
-        
-        return result.rc == mqtt.MQTT_ERR_SUCCESS
-    
-    def analog_read(self, pin: int) -> Optional[int]:
-        """
-        Read the last known value of an analog pin.
-        
-        Args:
-            pin: Analog pin number
-            
-        Returns:
-            Analog value or None if not available
-            
-        Example:
-            value = device.analog_read(0)
-            if value:
-                voltage = value * 3.3 / 1023
-        """
-        pin_value = self._pin_values.get(f"A{pin}")
-        if pin_value:
-            try:
-                return int(pin_value.value)
-            except ValueError:
-                return None
-        return None
-    
     # ========== Event Handlers ==========
     
     def on(self, event_type: str, pin: int):
@@ -561,7 +437,7 @@ class Vwire:
         Decorator to register an event handler.
         
         Args:
-            event_type: Event type (VIRTUAL_WRITE, DIGITAL_WRITE, etc.)
+            event_type: Event type (VIRTUAL_WRITE, etc.)
             pin: Pin number
             
         Returns:
@@ -587,28 +463,6 @@ class Vwire:
                 print(f"V0 received: {value}")
         """
         return self.on(self.VIRTUAL_WRITE, pin)
-    
-    def on_digital_write(self, pin: int):
-        """
-        Decorator for digital pin write events.
-        
-        Example:
-            @device.on_digital_write(13)
-            def handle_led(value):
-                print(f"LED: {'ON' if value else 'OFF'}")
-        """
-        return self.on(self.DIGITAL_WRITE, pin)
-    
-    def on_analog_write(self, pin: int):
-        """
-        Decorator for analog pin write events.
-        
-        Example:
-            @device.on_analog_write(0)
-            def handle_brightness(value):
-                print(f"Brightness: {value}")
-        """
-        return self.on(self.ANALOG_WRITE, pin)
     
     def on_connected(self, func: Callable):
         """
@@ -784,10 +638,9 @@ class Vwire:
                 pin_str = parts[3]
                 value = msg.payload.decode("utf-8")
                 
-                # Store value
-                pin_type = PinType.VIRTUAL if pin_str.startswith("V") else \
-                          PinType.DIGITAL if pin_str.startswith("D") else \
-                          PinType.ANALOG
+                # Only process virtual pins (V0-V255)
+                if not pin_str.startswith("V"):
+                    return
                 
                 try:
                     pin_num = int(pin_str[1:])
@@ -797,7 +650,7 @@ class Vwire:
                 self._pin_values[pin_str] = PinValue(
                     value=value,
                     timestamp=time.time(),
-                    pin_type=pin_type,
+                    pin_type=PinType.VIRTUAL,
                     pin_number=pin_num
                 )
                 
@@ -816,28 +669,16 @@ class Vwire:
                 if handler:
                     handler(value)
                     
-            elif pin_str.startswith("D"):
-                pin_num = int(pin_str[1:])
-                handler = self._handlers[self.DIGITAL_WRITE].get(pin_num)
-                if handler:
-                    handler(int(value) if value.isdigit() else 0)
-                    
-            elif pin_str.startswith("A"):
-                pin_num = int(pin_str[1:])
-                handler = self._handlers[self.ANALOG_WRITE].get(pin_num)
-                if handler:
-                    handler(int(float(value)))
-                    
         except (ValueError, KeyError) as e:
             logger.debug(f"Handler dispatch error: {e}")
     
     # ========== Context Manager ==========
-    
+
     def __enter__(self):
         """Context manager entry."""
         self.connect()
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit."""
         self.disconnect()
