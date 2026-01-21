@@ -72,8 +72,8 @@ def handle_led(value):
         }
     """
     state.led_on = (value == "1")
-    status = "ON 💡" if state.led_on else "OFF ⚫"
-    print(f"LED: {status}")
+    status = "ON" if state.led_on else "OFF"
+    print(f"[LED] Status: {status}")
     
     # Send feedback to dashboard
     device.virtual_write(10, f"LED is {status}")
@@ -88,7 +88,7 @@ def handle_motor_speed(value):
     """
     try:
         state.motor_speed = int(float(value))
-        print(f"⚙️  Motor speed: {state.motor_speed}")
+        print(f"[MOTOR] Speed: {state.motor_speed}")
         
         # In real application: control motor via GPIO or external driver
         
@@ -104,7 +104,7 @@ def handle_rgb_color(value):
     Color picker sends hex color string like "#FF5500".
     """
     state.rgb_color = value
-    print(f"🎨 RGB Color: {state.rgb_color}")
+    print(f"[RGB] Color: {state.rgb_color}")
     
     # Parse RGB values if needed
     if value.startswith("#") and len(value) == 7:
@@ -122,7 +122,7 @@ def handle_button_press(value):
     Button sends "1" when pressed.
     """
     if value == "1":
-        print("🔘 Button PRESSED!")
+        print("[BUTTON] Pressed!")
         
         # Trigger some action
         print("   → Triggering action...")
@@ -141,7 +141,7 @@ def handle_servo(value):
     try:
         state.servo_angle = int(float(value))
         state.servo_angle = max(0, min(180, state.servo_angle))
-        print(f"🔧 Servo angle: {state.servo_angle}deg")
+        print(f"[SERVO] Angle: {state.servo_angle} deg")
         
     except ValueError:
         print(f"Invalid servo value: {value}")

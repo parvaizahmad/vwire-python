@@ -1,6 +1,6 @@
 # Vwire IoT Python Library
 
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.8--3.13-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyPI Version](https://img.shields.io/pypi/v/vwire-iot.svg)](https://pypi.org/project/vwire-iot/)
 
@@ -8,15 +8,17 @@ Official Python client library for the **Vwire IoT Platform** - enabling seamles
 
 The API is designed to be **consistent with the Arduino Vwire library**, making it easy to port code between platforms and maintain a unified development experience.
 
+> **Note:** Python 3.14+ has a known incompatibility with the paho-mqtt library. Please use Python 3.8-3.13.
+
 ## Features
 
-- 🔒 **Secure by Default** - MQTT over TLS (port 8883) for encrypted communication
-- 🔄 **Real-time Communication** - Bidirectional data flow with MQTT
-- ⏱️ **Built-in Timer** - Schedule tasks
-- 📡 **Multiple Transports** - MQTT, MQTT over WebSocket, HTTP fallback
-- 🐍 **Pythonic API** - Clean, decorator-based event handling
-- 🔌 **Cross-Platform** - Works on Raspberry Pi, Linux, Windows, macOS
-- 📦 **Minimal Dependencies** - Only requires `paho-mqtt` and `requests`
+- Secure by Default - MQTT over TLS (port 8883) for encrypted communication
+- Real-time Communication - Bidirectional data flow with MQTT
+- Built-in Timer - Schedule tasks
+- Multiple Transports - MQTT, MQTT over WebSocket, HTTP fallback
+- Pythonic API - Clean, decorator-based event handling
+- Cross-Platform - Works on Raspberry Pi, Linux, Windows, macOS
+- Minimal Dependencies - Only requires `paho-mqtt` and `requests`
 
 ## Installation
 
@@ -306,11 +308,11 @@ The Python library mirrors the Arduino Vwire library API:
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Raspberry Pi | ✅ Full | GPIO support with RPi.GPIO |
-| Linux | ✅ Full | All features |
-| Windows | ✅ Full | All features |
-| macOS | ✅ Full | All features |
-| Docker | ✅ Full | Great for microservices |
+| Raspberry Pi | Full | GPIO support with RPi.GPIO |
+| Linux | Full | All features |
+| Windows | Full | All features |
+| macOS | Full | All features |
+| Docker | Full | Great for microservices |
 
 ## Troubleshooting
 

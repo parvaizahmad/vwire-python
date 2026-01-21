@@ -1,13 +1,15 @@
 # Vwire IoT Python Library
 
-[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![Python Version](https://img.shields.io/badge/python-3.8--3.13-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Official Python client library for the **Vwire IoT Platform** - enabling seamless communication between your Python applications and IoT devices.
 
 The API is designed to be **consistent with the Arduino Vwire library**, making it easy to port code between platforms.
 
-## ⚠️ Library Update (v2.0)
+> **Note:** Python 3.14+ has a known incompatibility with the paho-mqtt library. Please use Python 3.8-3.13.
+
+## Library Update (v2.0)
 
 The library has been completely restructured with a new `vwire` package for better consistency with the Arduino library and improved features.
 
@@ -42,7 +44,7 @@ python -c "from vwire import Vwire; print('✅ Vwire installed successfully!')"
 ### Dependencies
 
 The library requires:
-- Python 3.8+
+- **Python 3.8-3.13** (Python 3.14+ has paho-mqtt compatibility issues)
 - `paho-mqtt>=2.0.0`
 - `requests>=2.28.0`
 
@@ -170,4 +172,4 @@ MIT License - See [vwire/LICENSE](vwire/LICENSE)
 
 ---
 
-Made with ❤️ by the Vwire IoT Team
+Made with love by the Vwire IoT Team

@@ -8,7 +8,9 @@ version = "2.0.0"
 description = "Official Python client for Vwire IoT Platform"
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.8"
+# Note: Python 3.14+ has a known bug with paho-mqtt that causes struct.error
+# Recommended Python versions: 3.8, 3.9, 3.10, 3.11, 3.12, 3.13
+requires-python = ">=3.8,<3.14"
 authors = [
     {name = "Vwire IoT Team", email = "support@vwireiot.com"}
 ]

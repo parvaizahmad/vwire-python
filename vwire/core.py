@@ -10,9 +10,19 @@ import time
 import threading
 import ssl
 import logging
+import sys
 from typing import Any, Callable, Dict, List, Optional, Union
 from enum import Enum
 from dataclasses import dataclass
+
+# Check Python version - paho-mqtt has a bug with Python 3.14+
+if sys.version_info >= (3, 14):
+    import warnings
+    warnings.warn(
+        "Python 3.14+ has a known incompatibility with paho-mqtt that causes struct.error. "
+        "Please use Python 3.8-3.13 for stable operation.",
+        RuntimeWarning
+    )
 
 try:
     import paho.mqtt.client as mqtt
@@ -192,22 +202,31 @@ class Vwire:
     
     def _setup_mqtt_client(self) -> None:
         """Setup MQTT client with appropriate settings."""
+        import random
+        import uuid
         transport = "websockets" if self._config.use_websocket else "tcp"
-        client_id = f"vwire-py-{self._auth_token[-8:]}-{int(time.time())}"
+        # Use UUID for truly unique client ID to avoid session takeover
+        unique_id = str(uuid.uuid4())[:8]
+        client_id = f"vwire-py-{unique_id}"
         
         if PAHO_V2:
             self._mqtt = mqtt.Client(
                 callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
                 client_id=client_id,
                 protocol=mqtt.MQTTv311,
-                transport=transport
+                transport=transport,
+                clean_session=True
             )
         else:
             self._mqtt = mqtt.Client(
                 client_id=client_id,
                 protocol=mqtt.MQTTv311,
-                transport=transport
+                transport=transport,
+                clean_session=True
             )
+        
+        # Disable automatic reconnection - we'll handle it manually if needed
+        self._mqtt.reconnect_delay_set(min_delay=5, max_delay=30)
         
         # WebSocket path
         if self._config.use_websocket:
