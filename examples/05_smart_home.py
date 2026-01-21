@@ -40,8 +40,8 @@ from vwire import Vwire, VwireConfig
 # CONFIGURATION
 # =============================================================================
 
-AUTH_TOKEN = "iot_bLiNAWiSmOdCHf2yTrXHHgqudDgWszKm"
-config = VwireConfig()
+AUTH_TOKEN = "iot_dEfbDdGXh_3ArAEQWfWESO68986uLEBN"
+config = VwireConfig(debug=True)
 
 # =============================================================================
 # SMART HOME STATE
@@ -205,13 +205,17 @@ def send_sensor_data():
         print(f"[DOOR] Status: {status}")
     
     # Send to dashboard
-    device.virtual_write(10, home.current_temp)
-    device.virtual_write(11, "1" if home.motion_detected else "0")
-    device.virtual_write(12, "1" if home.door_open else "0")
+    sent_ok = True
+    sent_ok &= device.virtual_write(10, home.current_temp)
+    sent_ok &= device.virtual_write(11, "1" if home.motion_detected else "0")
+    sent_ok &= device.virtual_write(12, "1" if home.door_open else "0")
     
     # Send HVAC status
     hvac_status = f"{home.hvac_mode.upper()}" if home.hvac_running else "IDLE"
-    device.virtual_write(14, hvac_status)
+    sent_ok &= device.virtual_write(14, hvac_status)
+
+    # Debug print so we can see activity in console
+    print(f"[SEND] ok={sent_ok} temp={home.current_temp} motion={home.motion_detected} door={home.door_open} hvac={hvac_status}")
 
 
 def print_status():

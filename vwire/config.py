@@ -58,7 +58,7 @@ class VwireConfig:
     mqtt_port: int = 8883
     http_port: int = 443
     transport: TransportMode = TransportMode.TCP_TLS
-    keepalive: int = 60
+    keepalive: int = 30  # Match Arduino lib: 30 second keepalive
     reconnect_interval: int = 5
     max_reconnect_attempts: int = 0  # 0 = infinite
     verify_ssl: bool = True

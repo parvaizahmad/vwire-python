@@ -1,181 +1,79 @@
 """
-Vwire Core Module
+Vwire Core Module - Main client implementation
 
-Main Vwire client class providing Arduino-compatible API for IoT communication.
-Uses MQTT over TLS as the default secure communication protocol.
+This module provides the core Vwire client class following the same
+architecture as the Arduino Vwire library: single-threaded with explicit
+loop() calls for MQTT processing.
 """
 
-import json
-import time
-import threading
 import ssl
+import time
 import logging
-import sys
 from typing import Any, Callable, Dict, List, Optional, Union
 from enum import Enum
-from dataclasses import dataclass
 
-# Check Python version - paho-mqtt has a bug with Python 3.14+
-if sys.version_info >= (3, 14):
-    import warnings
-    warnings.warn(
-        "Python 3.14+ has a known incompatibility with paho-mqtt that causes struct.error. "
-        "Please use Python 3.8-3.13 for stable operation.",
-        RuntimeWarning
-    )
+import paho.mqtt.client as mqtt
 
-try:
-    import paho.mqtt.client as mqtt
-    PAHO_V2 = hasattr(mqtt, 'CallbackAPIVersion')
-except ImportError:
-    raise ImportError(
-        "paho-mqtt is required. Install it with: pip install paho-mqtt>=2.0.0"
-    )
-
-from .config import VwireConfig, TransportMode
+from .config import VwireConfig
 from .timer import VwireTimer
 
-# Setup logger
+# Setup logging
 logger = logging.getLogger("vwire")
 
+# Type aliases
+PinValue = Union[int, float, str, List[Any]]
+PinHandler = Callable[[Any], None]
 
-class PinType(Enum):
-    """Pin type enumeration."""
-    VIRTUAL = "V"
+# Check paho-mqtt version for API compatibility
+PAHO_V2 = hasattr(mqtt, 'CallbackAPIVersion')
 
 
 class ConnectionState(Enum):
     """Connection state enumeration."""
-    DISCONNECTED = 0
-    CONNECTING = 1
-    CONNECTED = 2
-    RECONNECTING = 3
-
-
-@dataclass
-class PinValue:
-    """Represents a pin value with metadata."""
-    value: str
-    timestamp: float
-    pin_type: PinType
-    pin_number: int
+    DISCONNECTED = "disconnected"
+    CONNECTING = "connecting"
+    CONNECTED = "connected"
 
 
 class Vwire:
     """
-    Main Vwire client class for IoT communication.
+    Vwire IoT Platform Client.
     
-    Provides an Arduino-compatible API for sending and receiving data
-    to/from the Vwire IoT platform. Uses secure MQTT/TLS by default.
+    Single-threaded implementation matching Arduino library architecture.
+    Call run() in your main loop to process MQTT messages and timers.
     
-    API Compatibility:
-        This class is designed to mirror the Arduino Vwire library API,
-        making it easy to port code between platforms.
-    
-    Example - Basic Usage:
-        from vwire import Vwire
-        
-        # Create client with auth token
+    Example:
         device = Vwire("your_auth_token")
         
-        # Connect to server
-        device.connect()
-        
-        # Write to virtual pin
-        device.virtual_write(0, 25.5)
-        
-        # Read last known value
-        value = device.virtual_read(0)
-        
-        # Disconnect
-        device.disconnect()
-    
-    Example - Event Handlers:
-        from vwire import Vwire
-        
-        device = Vwire("your_auth_token")
-        
-        # Handle virtual pin writes from dashboard
-        @device.on(Vwire.VIRTUAL_WRITE, 0)
-        def handle_v0(value):
-            print(f"V0 changed to: {value}")
-        
-        # Alternative decorator syntax
         @device.on_virtual_write(0)
-        def handle_v0_alt(value):
-            print(f"V0: {value}")
+        def handle_v0(value):
+            print(f"V0 = {value}")
         
-        device.connect()
-        device.run()  # Blocking event loop
-    
-    Example - With Timer:
-        from vwire import Vwire
-        
-        device = Vwire("your_auth_token")
-        
-        def send_data():
-            device.virtual_write(0, read_sensor())
-        
-        # Schedule to run every 2 seconds
-        device.timer.set_interval(2000, send_data)
-        
-        device.connect()
-        device.run()
+        if device.connect():
+            device.run()  # Blocks forever, or use run_once() in your own loop
     """
     
-    # Event types (Arduino-compatible constants)
-    VIRTUAL_WRITE = "vw"
-    VIRTUAL_READ = "vr"
+    # Event types
+    VIRTUAL_WRITE = "virtual_write"
+    VIRTUAL_READ = "virtual_read"
     
-    # Pin constants
-    LOW = 0
-    HIGH = 1
-    
-    # Max pins
-    MAX_VIRTUAL_PINS = 256
-    
-    def __init__(
-        self,
-        auth_token: str,
-        config: Optional[VwireConfig] = None,
-        server: Optional[str] = None,
-        port: Optional[int] = None
-    ):
+    def __init__(self, auth_token: str, config: Optional[VwireConfig] = None):
         """
-        Initialize the Vwire client.
+        Initialize Vwire client.
         
         Args:
-            auth_token: Device authentication token from Vwire dashboard
-            config: Optional VwireConfig object for custom configuration
-            server: Override server hostname (optional)
-            port: Override MQTT port (optional)
-            
-        Example:
-            # Default (secure TLS connection)
-            device = Vwire("your_auth_token")
-            
-            # Custom server
-            device = Vwire("your_auth_token", server="iot.mycompany.com")
-            
-            # Development mode
-            from vwire import Vwire, VwireConfig
-            config = VwireConfig.development("192.168.1.100")
-            device = Vwire("your_auth_token", config=config)
+            auth_token: Device authentication token from dashboard
+            config: Optional configuration (uses secure defaults if not provided)
         """
-        # Validate token
-        if not auth_token or len(auth_token) < 10:
-            raise ValueError("Invalid auth token")
-        
         self._auth_token = auth_token
         self._config = config or VwireConfig()
         
-        # Override server/port if provided
-        if server:
-            self._config.server = server
-        if port:
-            self._config.mqtt_port = port
+        # Setup logging
+        if self._config.debug:
+            logging.basicConfig(level=logging.DEBUG)
+            logger.setLevel(logging.DEBUG)
         
-        # MQTT client setup
+        # Create MQTT client
         self._setup_mqtt_client()
         
         # State management
@@ -186,29 +84,28 @@ class Vwire:
             self.VIRTUAL_READ: {},
         }
         
-        # Connected callback
+        # Callbacks
         self._on_connected_callback: Optional[Callable] = None
         self._on_disconnected_callback: Optional[Callable] = None
         
-        # Timer for scheduled tasks
+        # Timer for scheduled tasks (runs in main thread via run())
         self._timer = VwireTimer()
         
         # Internal state
         self._reconnect_count = 0
-        self._last_heartbeat = 0
-        self._lock = threading.Lock()
+        self._last_reconnect_attempt = 0.0
+        self._stop_requested = False
+        self._last_disconnect_time = 0.0
+        self._disconnects_in_window = 0
         
         logger.debug(f"Vwire client initialized: {self._config}")
     
     def _setup_mqtt_client(self) -> None:
-        """Setup MQTT client with appropriate settings."""
-        import hashlib
+        """Setup MQTT client matching Arduino library approach."""
         transport = "websockets" if self._config.use_websocket else "tcp"
         
-        # Use a stable client ID based on auth token hash (not random)
-        # This ensures the same device always uses the same client ID
-        token_hash = hashlib.md5(self._auth_token.encode()).hexdigest()[:12]
-        client_id = f"vwire-py-{token_hash}"
+        # Client ID: "vwire-{auth_token}" like Arduino library
+        client_id = f"vwire-{self._auth_token}"
         
         if PAHO_V2:
             self._mqtt = mqtt.Client(
@@ -226,18 +123,11 @@ class Vwire:
                 clean_session=True
             )
         
-        # Disable automatic reconnection completely
-        # Setting very long delays effectively disables auto-reconnect
-        self._mqtt.reconnect_delay_set(min_delay=300, max_delay=600)
-        
-        # Disable reconnection on disconnect by not calling reconnect
-        self._mqtt._reconnect_on_failure = False
-        
         # WebSocket path
         if self._config.use_websocket:
             self._mqtt.ws_set_options(path="/mqtt")
         
-        # Authentication
+        # Authentication (token as both username and password like Arduino)
         self._mqtt.username_pw_set(
             username=self._auth_token,
             password=self._auth_token
@@ -246,6 +136,10 @@ class Vwire:
         # TLS configuration
         if self._config.use_tls:
             self._setup_tls()
+
+        # Last will so dashboard reflects offline state if connection drops
+        will_topic = f"vwire/{self._auth_token}/status"
+        self._mqtt.will_set(will_topic, payload='{"status":"offline"}', qos=1, retain=True)
         
         # Callbacks
         self._mqtt.on_connect = self._on_connect
@@ -256,16 +150,23 @@ class Vwire:
         """Configure TLS settings."""
         cert_reqs = ssl.CERT_REQUIRED if self._config.verify_ssl else ssl.CERT_NONE
         
-        self._mqtt.tls_set(
-            ca_certs=self._config.ca_certs,
-            certfile=self._config.client_cert,
-            keyfile=self._config.client_key,
-            cert_reqs=cert_reqs,
-            tls_version=ssl.PROTOCOL_TLS
-        )
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_context.check_hostname = self._config.verify_ssl
+        ssl_context.verify_mode = cert_reqs
+        ssl_context.minimum_version = ssl.TLSVersion.TLSv1_2
         
-        if not self._config.verify_ssl:
-            self._mqtt.tls_insecure_set(True)
+        if self._config.ca_certs:
+            ssl_context.load_verify_locations(cafile=self._config.ca_certs)
+        else:
+            ssl_context.load_default_certs()
+        
+        if self._config.client_cert and self._config.client_key:
+            ssl_context.load_cert_chain(
+                certfile=self._config.client_cert,
+                keyfile=self._config.client_key
+            )
+        
+        self._mqtt.tls_set_context(ssl_context)
     
     # ========== Connection Methods ==========
     
@@ -274,17 +175,10 @@ class Vwire:
         Connect to the Vwire server.
         
         Args:
-            timeout: Connection timeout in seconds (default: 30)
+            timeout: Connection timeout in seconds
             
         Returns:
-            True if connected successfully, False otherwise
-            
-        Example:
-            device = Vwire("your_token")
-            if device.connect():
-                print("Connected!")
-            else:
-                print("Connection failed")
+            True if connected successfully
         """
         if self._state == ConnectionState.CONNECTED:
             return True
@@ -299,8 +193,7 @@ class Vwire:
                 keepalive=self._config.keepalive
             )
             
-            # Use loop() in a polling fashion to wait for connection
-            # Don't use loop_start() here - run() will handle the event loop
+            # Poll until connected or timeout (like Arduino)
             start = time.time()
             while self._state == ConnectionState.CONNECTING:
                 self._mqtt.loop(timeout=0.1)
@@ -317,58 +210,78 @@ class Vwire:
             return False
     
     def disconnect(self) -> None:
-        """
-        Disconnect from the Vwire server.
-        
-        Example:
-            device.disconnect()
-        """
+        """Disconnect from the Vwire server."""
         if self._state == ConnectionState.DISCONNECTED:
             return
+        
         logger.info("Disconnecting...")
+        self._stop_requested = True
         self._timer.stop()
+        
         try:
+            status_topic = f"vwire/{self._auth_token}/status"
+            self._mqtt.publish(status_topic, '{"status":"offline"}', qos=1, retain=True)
             self._mqtt.disconnect()
-        except:
+            self._mqtt.loop(timeout=0.5)
+        except Exception:
             pass
+        
         self._state = ConnectionState.DISCONNECTED
     
-    def run(self, blocking: bool = True) -> None:
+    def run(self) -> None:
         """
-        Run the event loop.
+        Main loop - blocks forever, processing MQTT and timers.
         
-        Args:
-            blocking: If True, blocks forever. If False, starts background thread.
-            
-        Example:
-            # Blocking (main loop)
-            device.run()
-            
-            # Non-blocking (background)
-            device.run(blocking=False)
-            # ... do other things ...
+        This matches the Arduino pattern where you call run() in loop().
         """
-        if not self._timer.is_running:
-            self._timer.start()
+        self._stop_requested = False
         
-        if blocking:
-            try:
-                # Keep running as long as we're connected
-                while self._state == ConnectionState.CONNECTED:
-                    self._mqtt.loop(timeout=1.0)
-                    
-            except KeyboardInterrupt:
-                logger.info("Interrupted by user")
-            finally:
-                self.disconnect()
-        else:
-            # loop_start already called in connect()
-            pass
+        try:
+            while not self._stop_requested:
+                self._run_once()
+                time.sleep(0.01)
+        except KeyboardInterrupt:
+            logger.info("Interrupted by user")
+        finally:
+            self.disconnect()
+    
+    def _run_once(self) -> None:
+        """
+        Single iteration - process MQTT and timers once.
+        
+        Like Arduino's Vwire.run() which is called in loop().
+        """
+        # If connected, process MQTT and timers
+        if self._mqtt.is_connected():
+            self._mqtt.loop(timeout=0.01)
+            self._timer.run()
+            return
+        
+        # Handle disconnection state change
+        if self._state == ConnectionState.CONNECTED:
+            self._state = ConnectionState.DISCONNECTED
+            logger.warning("Connection lost")
+            if self._on_disconnected_callback:
+                try:
+                    self._on_disconnected_callback()
+                except Exception as e:
+                    logger.error(f"Error in disconnect callback: {e}")
+        
+        # Auto reconnect (like Arduino)
+        if self._config.max_reconnect_attempts == 0 or \
+           self._reconnect_count < self._config.max_reconnect_attempts:
+            now = time.time()
+            if now - self._last_reconnect_attempt >= self._config.reconnect_interval:
+                self._last_reconnect_attempt = now
+                self._reconnect_count += 1
+                logger.info(f"Reconnecting (attempt {self._reconnect_count})...")
+                if self.connect(timeout=10):
+                    self._reconnect_count = 0
     
     @property
     def connected(self) -> bool:
         """Check if connected to server."""
-        return self._state == ConnectionState.CONNECTED
+        return self._state == ConnectionState.CONNECTED and self._mqtt.is_connected()
     
     @property
     def timer(self) -> VwireTimer:
@@ -381,234 +294,96 @@ class Vwire:
         """
         Write value(s) to a virtual pin.
         
-        Args:
-            pin: Virtual pin number (0-255)
-            *values: One or more values to write
-            
-        Returns:
-            True if successful
-            
-        Example:
-            # Single value
-            device.virtual_write(0, 25.5)
-            
-            # Multiple values (for widgets that accept arrays)
-            device.virtual_write(1, lat, lon)  # Map widget
-            device.virtual_write(2, 255, 128, 0)  # RGB values
+        Matches Arduino library: publishes raw value to vwire/{token}/pin/V{pin}
+        with comma-separated payloads for multiple values.
         """
-        if not 0 <= pin < self.MAX_VIRTUAL_PINS:
-            logger.warning(f"Invalid virtual pin: V{pin}")
+        if not self.connected:
+            logger.warning("Cannot write: not connected")
             return False
-        
-        # Format value(s)
+
+        if len(values) == 0:
+            logger.warning("Cannot write: no values provided")
+            return False
+
         if len(values) == 1:
-            payload = str(values[0])
+            payload = self._format_value(values[0])
         else:
-            payload = "\0".join(str(v) for v in values)
-        
+            payload = ",".join(self._format_value(v) for v in values)
+
         topic = f"vwire/{self._auth_token}/pin/V{pin}"
-        result = self._mqtt.publish(topic, payload, qos=1)
-        
-        # Update local cache
-        self._pin_values[f"V{pin}"] = PinValue(
-            value=payload,
-            timestamp=time.time(),
-            pin_type=PinType.VIRTUAL,
-            pin_number=pin
-        )
-        
+        # Arduino PubSubClient publishes QoS 0 by default
+        result = self._mqtt.publish(topic, payload, qos=0)
         return result.rc == mqtt.MQTT_ERR_SUCCESS
+
+    def _format_value(self, value: Any) -> str:
+        """Format value similar to Arduino VirtualPin: bool->1/0, numbers->string."""
+        if isinstance(value, bool):
+            return "1" if value else "0"
+        if isinstance(value, float):
+            text = f"{value:.4f}".rstrip("0").rstrip(".")
+            return text or "0"
+        return str(value)
     
-    def virtual_read(self, pin: int) -> Optional[str]:
-        """
-        Read the last known value of a virtual pin.
-        
-        Args:
-            pin: Virtual pin number (0-255)
-            
-        Returns:
-            Last known value as string, or None if not available
-            
-        Example:
-            temp = device.virtual_read(0)
-            if temp:
-                print(f"Temperature: {temp}")
-        """
-        pin_value = self._pin_values.get(f"V{pin}")
-        return pin_value.value if pin_value else None
+    def virtual_read(self, pin: int) -> Optional[PinValue]:
+        """Get the last known value of a virtual pin."""
+        return self._pin_values.get(f"V{pin}")
     
     def sync_virtual(self, pin: int) -> bool:
-        """
-        Request sync of a virtual pin value from server.
+        """Request sync of a virtual pin value from server."""
+        if not self.connected:
+            return False
         
-        Args:
-            pin: Virtual pin number
-            
-        Returns:
-            True if request was sent
-        """
         topic = f"vwire/{self._auth_token}/sync/V{pin}"
         result = self._mqtt.publish(topic, "", qos=1)
         return result.rc == mqtt.MQTT_ERR_SUCCESS
     
     def sync_all(self) -> bool:
-        """
-        Request sync of all pin values from server.
+        """Request sync of all pin values from server."""
+        if not self.connected:
+            return False
         
-        Returns:
-            True if request was sent
-        """
         topic = f"vwire/{self._auth_token}/sync"
-        result = self._mqtt.publish(topic, "all", qos=1)
+        result = self._mqtt.publish(topic, "", qos=1)
         return result.rc == mqtt.MQTT_ERR_SUCCESS
     
     # ========== Event Handlers ==========
     
-    def on(self, event_type: str, pin: int):
+    def on_virtual_write(self, pin: int) -> Callable:
         """
-        Decorator to register an event handler.
-        
-        Args:
-            event_type: Event type (VIRTUAL_WRITE, etc.)
-            pin: Pin number
-            
-        Returns:
-            Decorator function
-            
-        Example:
-            @device.on(Vwire.VIRTUAL_WRITE, 0)
-            def handle_v0(value):
-                print(f"V0: {value}")
-        """
-        def decorator(func: Callable):
-            self._handlers[event_type][pin] = func
-            return func
-        return decorator
-    
-    def on_virtual_write(self, pin: int):
-        """
-        Decorator for virtual pin write events.
+        Decorator to register a virtual write handler.
         
         Example:
             @device.on_virtual_write(0)
             def handle_v0(value):
-                print(f"V0 received: {value}")
+                print(f"V0 changed to: {value}")
         """
-        return self.on(self.VIRTUAL_WRITE, pin)
+        def decorator(func: PinHandler) -> PinHandler:
+            self._handlers[self.VIRTUAL_WRITE][pin] = func
+            return func
+        return decorator
     
-    def on_connected(self, func: Callable):
-        """
-        Decorator for connection event.
-        
-        Example:
-            @device.on_connected
-            def connected_handler():
-                print("Connected!")
-                device.sync_all()
-        """
-        self._on_connected_callback = func
-        return func
+    def on_virtual_read(self, pin: int) -> Callable:
+        """Decorator to register a virtual read handler."""
+        def decorator(func: PinHandler) -> PinHandler:
+            self._handlers[self.VIRTUAL_READ][pin] = func
+            return func
+        return decorator
     
-    def on_disconnected(self, func: Callable):
-        """
-        Decorator for disconnection event.
-        
-        Example:
-            @device.on_disconnected
-            def disconnected_handler():
-                print("Disconnected!")
-        """
-        self._on_disconnected_callback = func
-        return func
+    @property
+    def on_connected(self) -> Callable:
+        """Decorator to register connection handler."""
+        def decorator(func: Callable) -> Callable:
+            self._on_connected_callback = func
+            return func
+        return decorator
     
-    # ========== Advanced Methods ==========
-    
-    def set_property(self, pin: int, property_name: str, value: Any) -> bool:
-        """
-        Set a widget property (advanced widget control).
-        
-        Args:
-            pin: Virtual pin number
-            property_name: Property name (color, label, isDisabled, etc.)
-            value: Property value
-            
-        Returns:
-            True if successful
-            
-        Example:
-            # Change widget color to red
-            device.set_property(0, "color", "#FF0000")
-            
-            # Change widget label
-            device.set_property(0, "label", "Temperature")
-            
-            # Disable widget
-            device.set_property(0, "isDisabled", True)
-        """
-        topic = f"vwire/{self._auth_token}/prop/V{pin}"
-        payload = json.dumps({property_name: value})
-        result = self._mqtt.publish(topic, payload, qos=1)
-        return result.rc == mqtt.MQTT_ERR_SUCCESS
-    
-    def log_event(self, event: str, description: str = "") -> bool:
-        """
-        Log an event to the server.
-        
-        Args:
-            event: Event name/code
-            description: Event description
-            
-        Returns:
-            True if successful
-            
-        Example:
-            device.log_event("BOOT", "Device started")
-            device.log_event("SENSOR_ERROR", "Temperature sensor failed")
-        """
-        topic = f"vwire/{self._auth_token}/log"
-        payload = json.dumps({
-            "event": event,
-            "description": description,
-            "timestamp": time.time()
-        })
-        result = self._mqtt.publish(topic, payload, qos=1)
-        return result.rc == mqtt.MQTT_ERR_SUCCESS
-    
-    def send_notification(self, message: str) -> bool:
-        """
-        Send a push notification (if configured in dashboard).
-        
-        Args:
-            message: Notification message
-            
-        Returns:
-            True if successful
-            
-        Example:
-            device.send_notification("Alert: Temperature too high!")
-        """
-        topic = f"vwire/{self._auth_token}/notify"
-        result = self._mqtt.publish(topic, message, qos=1)
-        return result.rc == mqtt.MQTT_ERR_SUCCESS
-    
-    def send_email(self, subject: str, body: str) -> bool:
-        """
-        Send an email (if configured in dashboard).
-        
-        Args:
-            subject: Email subject
-            body: Email body
-            
-        Returns:
-            True if successful
-            
-        Example:
-            device.send_email("Alert", "Temperature exceeded threshold!")
-        """
-        topic = f"vwire/{self._auth_token}/email"
-        payload = json.dumps({"subject": subject, "body": body})
-        result = self._mqtt.publish(topic, payload, qos=1)
-        return result.rc == mqtt.MQTT_ERR_SUCCESS
+    @property
+    def on_disconnected(self) -> Callable:
+        """Decorator to register disconnection handler."""
+        def decorator(func: Callable) -> Callable:
+            self._on_disconnected_callback = func
+            return func
+        return decorator
     
     # ========== MQTT Callbacks ==========
     
@@ -619,14 +394,13 @@ class Vwire:
             self._reconnect_count = 0
             logger.info(f"Connected to {self._config.server}")
             
-            # Subscribe to command topics (server sends commands to /cmd/)
+            # Subscribe to command topics
             cmd_topic = f"vwire/{self._auth_token}/cmd/#"
             client.subscribe(cmd_topic, qos=1)
-            logger.debug(f"Subscribed to {cmd_topic}")
-            
-            # Subscribe to property updates
-            prop_topic = f"vwire/{self._auth_token}/prop/#"
-            client.subscribe(prop_topic, qos=1)
+
+            # Publish retained online status so dashboard reflects availability
+            status_topic = f"vwire/{self._auth_token}/status"
+            client.publish(status_topic, '{"status":"online"}', qos=1, retain=True)
             
             # Call user callback
             if self._on_connected_callback:
@@ -638,33 +412,35 @@ class Vwire:
             self._state = ConnectionState.DISCONNECTED
             error_messages = {
                 1: "Incorrect protocol version",
-                2: "Invalid client identifier",
+                2: "Invalid client identifier", 
                 3: "Server unavailable",
                 4: "Bad username or password",
                 5: "Not authorized",
             }
-            logger.error(f"Connection failed: {error_messages.get(rc, f'Unknown error ({rc})')}")
+            logger.error(f"Connection failed: {error_messages.get(rc, f'Unknown ({rc})')}")
     
     def _on_disconnect(self, client, userdata, rc):
         """Handle MQTT disconnection."""
-        prev_state = self._state
+        if self._state == ConnectionState.DISCONNECTED:
+            return
+        
         self._state = ConnectionState.DISCONNECTED
         
         if rc != 0:
-            # Disconnect codes:
-            # 0 = Clean disconnect
-            # 1 = Protocol error
-            # 2 = Identifier rejected (reconnected too fast)
-            # 7 = Session taken over (duplicate connection)
-            disconnect_reasons = {
-                1: "Protocol error",
-                2: "Client identifier rejected", 
-                7: "Session taken over by another connection",
-            }
-            reason = disconnect_reasons.get(rc, f"Unknown error (code: {rc})")
-            logger.warning(f"Unexpected disconnection: {reason}")
+            reason = mqtt.error_string(rc)
+            now = time.time()
+            # Count rapid disconnects to surface likely token collision (server kicks old client)
+            if now - self._last_disconnect_time <= 10:
+                self._disconnects_in_window += 1
+            else:
+                self._disconnects_in_window = 1
+            self._last_disconnect_time = now
+
+            msg = f"Unexpected disconnection: {reason} (code: {rc})"
+            if self._disconnects_in_window >= 2:
+                msg += " | Hint: Broker enforces one active connection per device token. If another device (e.g., Arduino) uses the same token, it will kick this client. Create a separate device/token for each client."
+            logger.warning(msg)
         
-        # Call user callback
         if self._on_disconnected_callback:
             try:
                 self._on_disconnected_callback()
@@ -674,59 +450,34 @@ class Vwire:
     def _on_message(self, client, userdata, msg):
         """Handle incoming MQTT messages."""
         try:
-            # Parse topic: vwire/{token}/cmd/{pin}
             parts = msg.topic.split("/")
             
             if len(parts) >= 4 and parts[2] == "cmd":
                 pin_str = parts[3]
                 value = msg.payload.decode("utf-8")
                 
-                # Normalize pin format - add V prefix if just a number
                 if pin_str.isdigit():
                     pin_str = f"V{pin_str}"
                 
-                # Only process virtual pins (V0-V255)
-                if not pin_str.startswith("V"):
-                    return
-                
-                try:
-                    pin_num = int(pin_str[1:])
-                except ValueError:
-                    return
-                
-                self._pin_values[pin_str] = PinValue(
-                    value=value,
-                    timestamp=time.time(),
-                    pin_type=PinType.VIRTUAL,
-                    pin_number=pin_num
-                )
-                
-                # Dispatch to handler
-                self._dispatch_handler(pin_str, value)
-                
+                if pin_str.upper().startswith("V"):
+                    pin = int(pin_str[1:])
+                    self._pin_values[f"V{pin}"] = value
+                    
+                    handler = self._handlers[self.VIRTUAL_WRITE].get(pin)
+                    if handler:
+                        try:
+                            handler(value)
+                        except Exception as e:
+                            logger.error(f"Error in handler for V{pin}: {e}")
+                            
         except Exception as e:
             logger.error(f"Error processing message: {e}")
     
-    def _dispatch_handler(self, pin_str: str, value: str):
-        """Dispatch value to appropriate handler."""
-        try:
-            if pin_str.startswith("V"):
-                pin_num = int(pin_str[1:])
-                handler = self._handlers[self.VIRTUAL_WRITE].get(pin_num)
-                if handler:
-                    handler(value)
-                    
-        except (ValueError, KeyError) as e:
-            logger.debug(f"Handler dispatch error: {e}")
-    
     # ========== Context Manager ==========
-
-    def __enter__(self):
-        """Context manager entry."""
+    
+    def __enter__(self) -> "Vwire":
         self.connect()
         return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Context manager exit."""
+    
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.disconnect()
-        return False
