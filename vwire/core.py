@@ -10,8 +10,6 @@ import time
 import threading
 import ssl
 import logging
-import struct
-import sys
 from typing import Any, Callable, Dict, List, Optional, Union
 from enum import Enum
 from dataclasses import dataclass
@@ -23,56 +21,6 @@ except ImportError:
     raise ImportError(
         "paho-mqtt is required. Install it with: pip install paho-mqtt>=2.0.0"
     )
-
-# Monkey-patch for paho-mqtt struct.error bug in Python 3.14+
-# The bug is in _handle_suback where f-string format creates invalid struct format
-if sys.version_info >= (3, 14) and PAHO_V2:
-    _original_handle_suback = mqtt.Client._handle_suback
-    
-    def _patched_handle_suback(self):
-        """Patched version of _handle_suback to handle Python 3.14 struct changes."""
-        try:
-            return _original_handle_suback(self)
-        except struct.error:
-            # Fallback: manually parse the SUBACK packet
-            packet = self._in_packet['packet']
-            if len(packet) >= 2:
-                mid = struct.unpack("!H", packet[:2])[0]
-                rest = packet[2:]
-                
-                # Import required items from paho
-                from paho.mqtt.client import (
-                    SUBACK, MQTTv5, Properties, ReasonCode
-                )
-                
-                if self._protocol == MQTTv5:
-                    properties = Properties(SUBACK >> 4)
-                    props, props_len = properties.unpack(rest)
-                    reasoncodes = [ReasonCode(SUBACK >> 4, identifier=c) for c in rest[props_len:]]
-                else:
-                    reasoncodes = [ReasonCode(SUBACK >> 4, identifier=c) for c in rest]
-                    properties = Properties(SUBACK >> 4)
-                
-                with self._callback_mutex:
-                    on_subscribe = self.on_subscribe
-                
-                if on_subscribe:
-                    with self._in_callback_mutex:
-                        try:
-                            from paho.mqtt.client import CallbackAPIVersion
-                            if self._callback_api_version == CallbackAPIVersion.VERSION2:
-                                on_subscribe(self, self._userdata, mid, reasoncodes, properties)
-                            else:
-                                # VERSION1 callback
-                                if self._protocol == MQTTv5:
-                                    on_subscribe(self, self._userdata, mid, reasoncodes, properties)
-                                else:
-                                    granted_qos = tuple(rc.value for rc in reasoncodes)
-                                    on_subscribe(self, self._userdata, mid, granted_qos)
-                        except Exception as e:
-                            self._easy_log(mqtt.MQTT_LOG_ERR, f"Subscribe callback error: {e}")
-    
-    mqtt.Client._handle_suback = _patched_handle_suback
 
 from .config import VwireConfig, TransportMode
 from .timer import VwireTimer
@@ -249,7 +197,7 @@ class Vwire:
         
         if PAHO_V2:
             self._mqtt = mqtt.Client(
-                callback_api_version=mqtt.CallbackAPIVersion.VERSION2,
+                callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
                 client_id=client_id,
                 protocol=mqtt.MQTTv311,
                 transport=transport
@@ -632,11 +580,8 @@ class Vwire:
     
     # ========== MQTT Callbacks ==========
     
-    def _on_connect(self, client, userdata, flags, reason_code, properties=None):
+    def _on_connect(self, client, userdata, flags, rc):
         """Handle MQTT connection."""
-        # VERSION2 uses reason_code object, VERSION1 uses rc integer
-        rc = reason_code.value if hasattr(reason_code, 'value') else reason_code
-        
         if rc == 0:
             self._state = ConnectionState.CONNECTED
             self._reconnect_count = 0
@@ -668,11 +613,8 @@ class Vwire:
             }
             logger.error(f"Connection failed: {error_messages.get(rc, f'Unknown error ({rc})')}")
     
-    def _on_disconnect(self, client, userdata, reason_code, properties=None):
+    def _on_disconnect(self, client, userdata, rc):
         """Handle MQTT disconnection."""
-        # VERSION2 uses reason_code object, VERSION1 uses rc integer
-        rc = reason_code.value if hasattr(reason_code, 'value') else reason_code
-        
         self._state = ConnectionState.DISCONNECTED
         
         if rc != 0:
