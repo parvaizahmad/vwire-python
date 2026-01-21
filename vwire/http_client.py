@@ -130,7 +130,7 @@ class VwireHTTP:
         Write a value to a pin.
         
         Args:
-            pin: Pin identifier (e.g., "V0", "D1", "A0")
+            pin: Pin identifier (e.g., "V0", "V1", "V2")
             value: Value to write
             
         Returns:
@@ -138,7 +138,7 @@ class VwireHTTP:
             
         Example:
             client.write_pin("V0", 25.5)
-            client.write_pin("D13", 1)
+            client.write_pin("V1", "Online")
         """
         url = f"{self._base_url}/webhooks/device/{self._auth_token}"
         payload = {"pin": pin, "value": str(value)}
@@ -171,38 +171,6 @@ class VwireHTTP:
         """
         return self.write_pin(f"V{pin}", value)
     
-    def digital_write(self, pin: int, value: int) -> bool:
-        """
-        Write to a digital pin.
-        
-        Args:
-            pin: Digital pin number
-            value: 0 (LOW) or 1 (HIGH)
-            
-        Returns:
-            True if successful
-            
-        Example:
-            client.digital_write(13, 1)  # Turn LED on
-        """
-        return self.write_pin(f"D{pin}", 1 if value else 0)
-    
-    def analog_write(self, pin: int, value: int) -> bool:
-        """
-        Write to an analog pin (PWM).
-        
-        Args:
-            pin: Analog pin number
-            value: Analog value (0-255 typically)
-            
-        Returns:
-            True if successful
-            
-        Example:
-            client.analog_write(0, 128)  # 50% duty cycle
-        """
-        return self.write_pin(f"A{pin}", int(value))
-    
     def write_batch(self, data: Dict[str, Any]) -> bool:
         """
         Write multiple pin values at once.
@@ -219,7 +187,7 @@ class VwireHTTP:
                 "V0": 25.5,      # Temperature
                 "V1": 60,        # Humidity
                 "V2": 1013,      # Pressure
-                "D13": 1,        # LED on
+                "V3": "Online",  # Status
             })
         """
         success = True
@@ -234,7 +202,7 @@ class VwireHTTP:
         Read the current value of a pin from server.
         
         Args:
-            pin: Pin identifier (e.g., "V0", "D1")
+            pin: Pin identifier (e.g., "V0", "V1")
             
         Returns:
             Pin value as string, or None if failed
@@ -310,7 +278,7 @@ def quick_write(
     
     Args:
         auth_token: Device authentication token
-        pin: Pin identifier (e.g., "V0", "D1")
+        pin: Pin identifier (e.g., "V0", "V1")
         value: Value to write
         server: Server hostname
         port: HTTP port

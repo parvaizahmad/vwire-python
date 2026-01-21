@@ -101,13 +101,9 @@ def example_multiple_writes():
     success &= client.virtual_write(1, humidity)
     success &= client.virtual_write(2, pressure)
     
-    # Write to digital pin
-    led_state = random.choice([0, 1])
-    success &= client.digital_write(13, led_state)
-    
     if success:
         print(f"✅ Sent: Temp={temperature}°C, Humidity={humidity}%, "
-              f"Pressure={pressure}hPa, LED={'ON' if led_state else 'OFF'}")
+              f"Pressure={pressure}hPa")
     else:
         print("⚠️  Some writes failed")
     
@@ -130,7 +126,6 @@ def example_batch_write():
         "V2": round(1013 + random.uniform(-10, 10), 1),# Pressure
         "V3": random.randint(0, 100),                   # Light level %
         "V4": "Online",                                 # Status string
-        "D13": random.choice([0, 1]),                   # LED state
     }
     
     if client.write_batch(data):

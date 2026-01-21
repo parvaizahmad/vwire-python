@@ -146,33 +146,11 @@ Vwire(auth_token, config=None, server=None, port=None)
 | `sync_virtual(pin)` | Request sync of specific pin from server. |
 | `sync_all()` | Request sync of all pins from server. |
 
-#### Digital Pin Operations
-
-| Method | Description |
-|--------|-------------|
-| `digital_write(pin, value)` | Write 0 or 1 to digital pin D0-D31. |
-| `digital_read(pin)` | Read last known value of digital pin. |
-
-#### Analog Pin Operations
-
-| Method | Description |
-|--------|-------------|
-| `analog_write(pin, value)` | Write PWM value to analog pin A0-A15. |
-| `analog_read(pin)` | Read last known value of analog pin. |
-
 #### Event Handlers
 
 ```python
 # Decorator syntax
 @device.on_virtual_write(pin)
-def handler(value):
-    pass
-
-@device.on_digital_write(pin)
-def handler(value):
-    pass
-
-@device.on_analog_write(pin)
 def handler(value):
     pass
 
@@ -256,13 +234,13 @@ client = VwireHTTP("your-auth-token")
 
 # Write to pins
 client.virtual_write(0, 25.5)
-client.digital_write(13, 1)
+client.virtual_write(1, 60)
 
 # Batch write
 client.write_batch({
     "V0": 25.5,
     "V1": 60,
-    "D13": 1
+    "V2": 1013
 })
 
 # Read from server
@@ -318,7 +296,7 @@ The Python library mirrors the Arduino Vwire library API:
 | Arduino | Python |
 |---------|--------|
 | `Vwire.virtualWrite(V0, value)` | `device.virtual_write(0, value)` |
-| `Vwire.digitalRead(pin)` | `device.digital_read(pin)` |
+| `Vwire.virtualRead(V0)` | `device.virtual_read(0)` |
 | `VWIRE_WRITE(V0) { ... }` | `@device.on_virtual_write(0)` |
 | `timer.setInterval(1000, func)` | `device.timer.set_interval(1000, func)` |
 | `Vwire.begin(auth)` | `device.connect()` |

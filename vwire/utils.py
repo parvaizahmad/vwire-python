@@ -86,7 +86,7 @@ def parse_pin(pin_str: str) -> tuple:
     Parse a pin string into type and number.
     
     Args:
-        pin_str: Pin string (e.g., "V0", "D13", "A0")
+        pin_str: Pin string (e.g., "V0", "V1", "V255")
         
     Returns:
         Tuple of (pin_type, pin_number)
@@ -102,8 +102,8 @@ def parse_pin(pin_str: str) -> tuple:
         raise ValueError(f"Invalid pin: {pin_str}")
     
     pin_type = pin_str[0].upper()
-    if pin_type not in ("V", "D", "A"):
-        raise ValueError(f"Invalid pin type: {pin_type}")
+    if pin_type != "V":
+        raise ValueError(f"Invalid pin type: {pin_type}. Only virtual pins (V) are supported.")
     
     try:
         pin_num = int(pin_str[1:])
