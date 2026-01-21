@@ -1,0 +1,87 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vwire-iot"
+version = "2.0.0"
+description = "Official Python client for Vwire IoT Platform"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Vwire IoT Team", email = "support@vwireiot.com"}
+]
+keywords = [
+    "iot",
+    "mqtt", 
+    "raspberry-pi",
+    "esp32",
+    "esp8266",
+    "arduino",
+    "home-automation",
+    "sensors",
+    "vwire"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Home Automation",
+    "Topic :: Internet :: WWW/HTTP",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Hardware",
+    "Topic :: Scientific/Engineering",
+]
+dependencies = [
+    "paho-mqtt>=2.0.0",
+    "requests>=2.28.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "types-requests>=2.28.0",
+]
+raspberry-pi = [
+    "RPi.GPIO>=0.7.0",
+]
+
+[project.urls]
+Homepage = "https://vwireiot.com"
+Documentation = "https://docs.vwireiot.com"
+Repository = "https://github.com/vwireiot/vwire-python"
+Issues = "https://github.com/vwireiot/vwire-python/issues"
+
+[tool.setuptools]
+packages = ["vwire"]
+package-dir = {"vwire" = "."}
+
+[tool.black]
+line-length = 100
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312']
+include = '\.pyi?$'
+
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=vwire --cov-report=term-missing"

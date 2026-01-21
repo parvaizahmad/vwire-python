@@ -1,0 +1,21 @@
+# Vwire IoT Python Library - Dependencies
+# ========================================
+# 
+# Install with: pip install -r requirements.txt
+
+# Core MQTT client (v2.x recommended for latest features)
+paho-mqtt>=2.0.0
+
+# HTTP client for fallback operations
+requests>=2.28.0
+
+# Optional: For type hints (Python 3.8+)
+typing-extensions>=4.0.0;python_version<"3.10"
+
+# Optional: For Raspberry Pi GPIO support
+# Uncomment if running on Raspberry Pi:
+# RPi.GPIO>=0.7.0
+
+# Optional: For DHT sensors (Raspberry Pi)
+# Uncomment if using DHT11/DHT22 sensors:
+# Adafruit-DHT>=1.4.0
