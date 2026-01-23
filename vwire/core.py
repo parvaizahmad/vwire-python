@@ -311,8 +311,8 @@ class Vwire:
             payload = ",".join(self._format_value(v) for v in values)
 
         topic = f"vwire/{self._auth_token}/pin/V{pin}"
-        # Arduino PubSubClient publishes QoS 0 by default
-        result = self._mqtt.publish(topic, payload, qos=0)
+        # Use QoS 1 for reliable delivery (guaranteed at least once)
+        result = self._mqtt.publish(topic, payload, qos=1)
         return result.rc == mqtt.MQTT_ERR_SUCCESS
 
     def _format_value(self, value: Any) -> str:
