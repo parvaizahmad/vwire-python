@@ -308,7 +308,7 @@ Examples:
                         default="your-device-auth-token-here",
                         help="Device auth token")
     parser.add_argument("--server", "-s", 
-                        default="mqtt.vwireiot.com",
+                        default="mqtt.vwire.io",
                         help="Server hostname")
     parser.add_argument("--port", "-p", 
                         type=int, default=None,

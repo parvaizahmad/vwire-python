@@ -33,7 +33,7 @@ AUTH_TOKEN = "iot_pu15lMGHxUO5pkziDHhmS5SrV4HsEZjH"
 
 # Server configuration (default uses secure TLS connection)
 # For local development, use: config = VwireConfig.development("localhost")
-config = VwireConfig()  # Default: mqtt.vwireiot.com:8883 with TLS
+config = VwireConfig()  # Default: mqtt.vwire.io:8883 with TLS
 
 # =============================================================================
 # MAIN CODE

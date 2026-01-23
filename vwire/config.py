@@ -26,7 +26,7 @@ class VwireConfig:
     Provides secure defaults with MQTT over TLS as the primary communication method.
     
     Attributes:
-        server: Server hostname (default: mqtt.vwireiot.com)
+        server: Server hostname (default: mqtt.vwire.io)
         mqtt_port: MQTT broker port (default: 8883 for TLS)
         http_port: HTTP API port for fallback (default: 443)
         transport: Transport mode (default: TCP_TLS)
@@ -54,7 +54,7 @@ class VwireConfig:
         config = VwireConfig.websocket()
     """
     
-    server: str = "mqtt.vwireiot.com"
+    server: str = "mqtt.vwire.io"
     mqtt_port: int = 8883
     http_port: int = 443
     transport: TransportMode = TransportMode.TCP_TLS
@@ -93,14 +93,14 @@ class VwireConfig:
         )
     
     @classmethod
-    def websocket(cls, server: str = "mqtt.vwireiot.com", port: int = 443) -> "VwireConfig":
+    def websocket(cls, server: str = "mqtt.vwire.io", port: int = 443) -> "VwireConfig":
         """
         Create a WebSocket configuration (useful when MQTT ports are blocked).
         
         Uses MQTT over secure WebSocket (wss://) on port 443.
         
         Args:
-            server: Server hostname (default: mqtt.vwireiot.com)
+            server: Server hostname (default: mqtt.vwire.io)
             port: WebSocket port (default: 443)
             
         Returns:

@@ -266,7 +266,7 @@ value = client.virtual_read(0)
 from vwire import Vwire, VwireConfig
 
 # Production (default)
-device = Vwire("token")  # Uses mqtt.vwireiot.com:8883
+device = Vwire("token")  # Uses mqtt.vwire.io:8883
 
 # Custom server
 device = Vwire("token", server="iot.mycompany.com")
