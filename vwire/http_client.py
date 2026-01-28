@@ -30,10 +30,10 @@ class VwireHTTP:
         # Create client
         client = VwireHTTP("your_auth_token")
         
-        # Write to virtual pin
-        client.virtual_write(0, 25.5)
+        # Send to virtual pin
+        client.virtual_send(0, 25.5)
         
-        # Write multiple values at once
+        # Send multiple values at once
         client.write_batch({
             "V0": 25.5,
             "V1": 60,
@@ -154,20 +154,22 @@ class VwireHTTP:
             logger.error(f"Error writing to pin {pin}: {e}")
             return False
     
-    def virtual_write(self, pin: int, value: Union[str, int, float]) -> bool:
+    def virtual_send(self, pin: int, value: Union[str, int, float]) -> bool:
         """
-        Write to a virtual pin.
+        Send a value to a virtual pin.
+        
+        Matches Arduino library Vwire.virtualSend().
         
         Args:
             pin: Virtual pin number (0-255)
-            value: Value to write
+            value: Value to send
             
         Returns:
             True if successful
             
         Example:
-            client.virtual_write(0, 25.5)
-            client.virtual_write(1, "Hello")
+            client.virtual_send(0, 25.5)
+            client.virtual_send(1, "Hello")
         """
         return self.write_pin(f"V{pin}", value)
     

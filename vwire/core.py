@@ -12,7 +12,7 @@ Arduino Library Equivalents:
     connect()              Vwire.begin(ssid, password)
     run()                  Vwire.run()
     connected              Vwire.connected()
-    virtual_write(pin, v)  Vwire.virtualSend(pin, v)
+    virtual_send(pin, v)   Vwire.virtualSend(pin, v)
     sync_virtual(pin)      Vwire.syncVirtual(pin)
     sync_all()             Vwire.syncAll()
     notify(msg)            Vwire.notify(msg)
@@ -64,7 +64,7 @@ class Vwire:
     Example:
         device = Vwire("your_auth_token")
         
-        @device.on_virtual_write(0)
+        @device.on_virtual_receive(0)
         def handle_v0(value):
             print(f"V0 = {value}")
         
@@ -77,7 +77,7 @@ class Vwire:
     """
     
     # Event types
-    VIRTUAL_WRITE = "virtual_write"
+    VIRTUAL_RECEIVE = "virtual_receive"
     VIRTUAL_READ = "virtual_read"
     
     def __init__(self, auth_token: str, config: Optional[VwireConfig] = None):
@@ -105,7 +105,7 @@ class Vwire:
         self._state = ConnectionState.DISCONNECTED
         self._pin_values: Dict[str, PinValue] = {}
         self._handlers: Dict[str, Dict[int, Callable]] = {
-            self.VIRTUAL_WRITE: {},
+            self.VIRTUAL_RECEIVE: {},
             self.VIRTUAL_READ: {},
         }
         
@@ -317,12 +317,12 @@ class Vwire:
     
     # ========== Virtual Pin Operations ==========
     
-    def virtual_write(self, pin: int, *values: Any) -> bool:
+    def virtual_send(self, pin: int, *values: Any) -> bool:
         """
-        Write value(s) to a virtual pin.
+        Send value(s) to a virtual pin.
         
-        Matches Arduino library: publishes raw value to vwire/{token}/pin/V{pin}
-        with comma-separated payloads for multiple values.
+        Matches Arduino library Vwire.virtualSend(): publishes raw value to
+        vwire/{token}/pin/V{pin} with comma-separated payloads for multiple values.
         """
         if not self.connected:
             logger.warning("Cannot write: not connected")
@@ -443,17 +443,19 @@ class Vwire:
     
     # ========== Event Handlers ==========
     
-    def on_virtual_write(self, pin: int) -> Callable:
+    def on_virtual_receive(self, pin: int) -> Callable:
         """
-        Decorator to register a virtual write handler.
+        Decorator to register a handler for receiving data on a virtual pin.
+        
+        Matches Arduino's VWIRE_RECEIVE(pin) macro.
         
         Example:
-            @device.on_virtual_write(0)
+            @device.on_virtual_receive(0)
             def handle_v0(value):
-                print(f"V0 changed to: {value}")
+                print(f"V0 received: {value}")
         """
         def decorator(func: PinHandler) -> PinHandler:
-            self._handlers[self.VIRTUAL_WRITE][pin] = func
+            self._handlers[self.VIRTUAL_RECEIVE][pin] = func
             return func
         return decorator
     
@@ -558,7 +560,7 @@ class Vwire:
                     pin = int(pin_str[1:])
                     self._pin_values[f"V{pin}"] = value
                     
-                    handler = self._handlers[self.VIRTUAL_WRITE].get(pin)
+                    handler = self._handlers[self.VIRTUAL_RECEIVE].get(pin)
                     if handler:
                         try:
                             handler(value)

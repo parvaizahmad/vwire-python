@@ -6,7 +6,7 @@ This example demonstrates how to receive and handle commands from the
 Vwire dashboard. When users interact with widgets (buttons, sliders, etc.),
 your device receives the values.
 
-The API mirrors the Arduino library's VWIRE_WRITE() handlers.
+The API mirrors the Arduino library's VWIRE_RECEIVE() macro.
 
 Hardware: Any Python environment (Raspberry Pi, PC, etc.)
 Platform: Vwire IoT (https://vwireiot.com)
@@ -60,13 +60,13 @@ device = Vwire(AUTH_TOKEN, config=config)
 # EVENT HANDLERS - Similar to Arduino VWIRE_WRITE(pin)
 # =============================================================================
 
-@device.on_virtual_write(0)
+@device.on_virtual_receive(0)
 def handle_led(value):
     """
     Handle LED control from Switch widget.
     
     Similar to Arduino:
-        VWIRE_WRITE(V0) {
+        VWIRE_RECEIVE(V0) {
             int value = param.asInt();
             // Control your LED via GPIO
         }
@@ -76,10 +76,10 @@ def handle_led(value):
     print(f"[LED] Status: {status}")
     
     # Send feedback to dashboard
-    device.virtual_write(10, f"LED is {status}")
+    device.virtual_send(10, f"LED is {status}")
 
 
-@device.on_virtual_write(1)
+@device.on_virtual_receive(1)
 def handle_motor_speed(value):
     """
     Handle motor speed from Slider widget.
@@ -96,7 +96,7 @@ def handle_motor_speed(value):
         print(f"Invalid motor value: {value}")
 
 
-@device.on_virtual_write(2)
+@device.on_virtual_receive(2)
 def handle_rgb_color(value):
     """
     Handle RGB color from Color Picker widget.
@@ -114,7 +114,7 @@ def handle_rgb_color(value):
         print(f"   R={r}, G={g}, B={b}")
 
 
-@device.on_virtual_write(3)
+@device.on_virtual_receive(3)
 def handle_button_press(value):
     """
     Handle momentary button press.
@@ -126,14 +126,14 @@ def handle_button_press(value):
         
         # Trigger some action
         print("   → Triggering action...")
-        device.virtual_write(10, "Action triggered!")
+        device.virtual_send(10, "Action triggered!")
         
         # Example: toggle LED
         state.led_on = not state.led_on
-        device.virtual_write(0, "1" if state.led_on else "0")
+        device.virtual_send(0, "1" if state.led_on else "0")
 
 
-@device.on_virtual_write(4)
+@device.on_virtual_receive(4)
 def handle_servo(value):
     """
     Handle servo angle from Slider widget (0-180).
@@ -173,7 +173,7 @@ def main():
     print("=" * 60)
     print("Vwire IoT - Receive Commands Example")
     print("=" * 60)
-    print(f"Server: {config.server}:{config.mqtt_port}")
+    print(f"Server: {config.server}:{config.port}")
     print()
     print("This device will respond to dashboard widget interactions.")
     print("Configure widgets on these pins:")

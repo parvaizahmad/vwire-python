@@ -85,7 +85,7 @@ device = Vwire(AUTH_TOKEN, config=config)
 # COMMAND HANDLERS (Dashboard → Device)
 # =============================================================================
 
-@device.on_virtual_write(0)
+@device.on_virtual_receive(0)
 def handle_living_room_light(value):
     """Control living room light from dashboard switch."""
     home.living_room_light = (value == "1")
@@ -96,10 +96,10 @@ def handle_living_room_light(value):
     print(f"[HOME] Living Room Light: {status}")
     
     # Send feedback
-    device.virtual_write(13, f"Living room {status}")
+    device.virtual_send(13, f"Living room {status}")
 
 
-@device.on_virtual_write(1)
+@device.on_virtual_receive(1)
 def handle_bedroom_light(value):
     """Control bedroom light from dashboard switch."""
     home.bedroom_light = (value == "1")
@@ -107,10 +107,10 @@ def handle_bedroom_light(value):
     status = "ON" if home.bedroom_light else "OFF"
     print(f"[HOME] Bedroom Light: {status}")
     
-    device.virtual_write(13, f"Bedroom {status}")
+    device.virtual_send(13, f"Bedroom {status}")
 
 
-@device.on_virtual_write(2)
+@device.on_virtual_receive(2)
 def handle_thermostat(value):
     """Set thermostat target from dashboard slider."""
     try:
@@ -118,13 +118,13 @@ def handle_thermostat(value):
         home.thermostat_target = max(16, min(30, home.thermostat_target))
         
         print(f"[TEMP]  Thermostat set to: {home.thermostat_target}C")
-        device.virtual_write(13, f"Target: {home.thermostat_target}C")
+        device.virtual_send(13, f"Target: {home.thermostat_target}C")
         
     except ValueError:
         print(f"Invalid thermostat value: {value}")
 
 
-@device.on_virtual_write(3)
+@device.on_virtual_receive(3)
 def handle_fan_speed(value):
     """Set fan speed from dashboard slider (0-3)."""
     try:
@@ -133,7 +133,7 @@ def handle_fan_speed(value):
         
         speed_names = ["OFF", "LOW", "MEDIUM", "HIGH"]
         print(f"[FAN] Speed: {speed_names[home.fan_speed]}")
-        device.virtual_write(13, f"Fan: {speed_names[home.fan_speed]}")
+        device.virtual_send(13, f"Fan: {speed_names[home.fan_speed]}")
         
     except ValueError:
         print(f"Invalid fan speed: {value}")
@@ -206,13 +206,13 @@ def send_sensor_data():
     
     # Send to dashboard
     sent_ok = True
-    sent_ok &= device.virtual_write(10, home.current_temp)
-    sent_ok &= device.virtual_write(11, "1" if home.motion_detected else "0")
-    sent_ok &= device.virtual_write(12, "1" if home.door_open else "0")
+    sent_ok &= device.virtual_send(10, home.current_temp)
+    sent_ok &= device.virtual_send(11, "1" if home.motion_detected else "0")
+    sent_ok &= device.virtual_send(12, "1" if home.door_open else "0")
     
     # Send HVAC status
     hvac_status = f"{home.hvac_mode.upper()}" if home.hvac_running else "IDLE"
-    sent_ok &= device.virtual_write(14, hvac_status)
+    sent_ok &= device.virtual_send(14, hvac_status)
 
     # Debug print so we can see activity in console
     print(f"[SEND] ok={sent_ok} temp={home.current_temp} motion={home.motion_detected} door={home.door_open} hvac={hvac_status}")
@@ -252,7 +252,7 @@ def on_connected():
     device.timer.set_interval(15000, print_status)
     
     # Send initial status
-    device.virtual_write(13, "Smart Home Online")
+    device.virtual_send(13, "Smart Home Online")
     send_sensor_data()
 
 

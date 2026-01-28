@@ -72,10 +72,10 @@ def main():
             humidity = round(50 + random.uniform(-20, 30), 1)
             light_level = random.randint(0, 1023)
             
-            # Send data to virtual pins (like Arduino Vwire.virtualWrite)
-            device.virtual_write(0, temperature)    # V0 = Temperature
-            device.virtual_write(1, humidity)       # V1 = Humidity
-            device.virtual_write(2, light_level)    # V2 = Light level
+            # Send data to virtual pins (like Arduino Vwire.virtualSend)
+            device.virtual_send(0, temperature)    # V0 = Temperature
+            device.virtual_send(1, humidity)       # V1 = Humidity
+            device.virtual_send(2, light_level)    # V2 = Light level
             
             # Print status
             print(f"[SENT] Temp: {temperature}C | Humidity: {humidity}% | Light: {light_level}")
@@ -100,7 +100,7 @@ def example_with_context_manager():
     # Using 'with' statement automatically handles connect/disconnect
     with Vwire(AUTH_TOKEN, config=config) as device:
         for i in range(5):
-            device.virtual_write(0, random.uniform(20, 30))
+            device.virtual_send(0, random.uniform(20, 30))
             print(f"Sent reading {i+1}/5")
             time.sleep(1)
     
@@ -123,7 +123,7 @@ def example_quick_send():
     )
     
     # Send single value
-    http_client.virtual_write(0, 25.5)
+    http_client.virtual_send(0, 25.5)
     
     # Send multiple values at once
     http_client.write_batch({

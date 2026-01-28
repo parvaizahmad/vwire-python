@@ -64,16 +64,16 @@ client = VwireHTTP(
 
 def example_single_write():
     """
-    Example: Write a single value to a virtual pin.
+    Example: Send a single value to a virtual pin.
     
     Simplest use case - send one value.
     """
-    print("[SENT] Single Write Example")
+    print("[SENT] Single Send Example")
     print("-" * 40)
     
     temperature = round(22 + random.uniform(-5, 5), 1)
     
-    if client.virtual_write(0, temperature):
+    if client.virtual_send(0, temperature):
         print(f"[OK] Sent temperature: {temperature}C to V0")
     else:
         print("[ERROR] Failed to send data")
@@ -83,11 +83,11 @@ def example_single_write():
 
 def example_multiple_writes():
     """
-    Example: Write multiple values individually.
+    Example: Send multiple values individually.
     
     Good when you need to send different types of data.
     """
-    print("[SENT] Multiple Writes Example")
+    print("[SENT] Multiple Sends Example")
     print("-" * 40)
     
     # Simulate sensor readings
@@ -95,17 +95,17 @@ def example_multiple_writes():
     humidity = round(55 + random.uniform(-10, 10), 1)
     pressure = round(1013 + random.uniform(-10, 10), 1)
     
-    # Write to virtual pins
+    # Send to virtual pins
     success = True
-    success &= client.virtual_write(0, temperature)
-    success &= client.virtual_write(1, humidity)
-    success &= client.virtual_write(2, pressure)
+    success &= client.virtual_send(0, temperature)
+    success &= client.virtual_send(1, humidity)
+    success &= client.virtual_send(2, pressure)
     
     if success:
         print(f"[OK] Sent: Temp={temperature}C, Humidity={humidity}%, "
               f"Pressure={pressure}hPa")
     else:
-        print("[WARN]  Some writes failed")
+        print("[WARN]  Some sends failed")
     
     print()
 
@@ -153,8 +153,8 @@ def example_periodic_logging():
         humidity = round(55 + random.gauss(0, 5), 1)
         
         # Send data
-        success1 = client.virtual_write(0, temp)
-        success2 = client.virtual_write(1, humidity)
+        success1 = client.virtual_send(0, temp)
+        success2 = client.virtual_send(1, humidity)
         
         if success1 and success2:
             print(f"[{i+1}/5] [OK] Temp: {temp}C, Humidity: {humidity}%")

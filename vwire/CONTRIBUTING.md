@@ -62,19 +62,21 @@ pip install -e ".[dev]"
 ### Example
 
 ```python
-def virtual_write(self, pin: int, value: Union[str, int, float]) -> bool:
+def virtual_send(self, pin: int, value: Union[str, int, float]) -> bool:
     """
-    Write a value to a virtual pin.
+    Send a value to a virtual pin.
+    
+    Matches Arduino library Vwire.virtualSend().
     
     Args:
         pin: Virtual pin number (0-255)
-        value: Value to write (will be converted to string)
+        value: Value to send (will be converted to string)
         
     Returns:
         True if published successfully
         
     Example:
-        device.virtual_write(0, 25.5)
+        device.virtual_send(0, 25.5)
     """
     ...
 ```
@@ -99,8 +101,8 @@ The Python library should mirror the Arduino Vwire library API:
 | Arduino | Python |
 |---------|--------|
 | `camelCase` methods | `snake_case` methods |
-| `Vwire.virtualWrite(V0, val)` | `device.virtual_write(0, val)` |
-| `VWIRE_WRITE(V0)` handler | `@device.on_virtual_write(0)` decorator |
+| `Vwire.virtualSend(V0, val)` | `device.virtual_send(0, val)` |
+| `VWIRE_RECEIVE(V0)` handler | `@device.on_virtual_receive(0)` decorator |
 
 When adding new features:
 

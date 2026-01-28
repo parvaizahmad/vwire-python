@@ -195,12 +195,12 @@ def run_mqtt_logger(auth_token: str, server: str, port: int,
         reading_count += 1
         
         # Send to Vwire
-        device.virtual_write(PIN_MAP["temperature"], reading.temperature)
-        device.virtual_write(PIN_MAP["humidity"], reading.humidity)
-        device.virtual_write(PIN_MAP["pressure"], reading.pressure)
-        device.virtual_write(PIN_MAP["co2"], reading.co2)
-        device.virtual_write(PIN_MAP["pm25"], reading.pm25)
-        device.virtual_write(PIN_MAP["noise_db"], reading.noise_db)
+        device.virtual_send(PIN_MAP["temperature"], reading.temperature)
+        device.virtual_send(PIN_MAP["humidity"], reading.humidity)
+        device.virtual_send(PIN_MAP["pressure"], reading.pressure)
+        device.virtual_send(PIN_MAP["co2"], reading.co2)
+        device.virtual_send(PIN_MAP["pm25"], reading.pm25)
+        device.virtual_send(PIN_MAP["noise_db"], reading.noise_db)
         
         # Buffer locally
         buffer.add(reading)

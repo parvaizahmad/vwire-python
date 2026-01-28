@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-01-28
+
+### Changed
+- **BREAKING**: `virtual_write()` renamed to `virtual_send()` to match Arduino's `virtualSend()`
+- **BREAKING**: `@on_virtual_write(pin)` decorator renamed to `@on_virtual_receive(pin)` to match Arduino's `VWIRE_RECEIVE(pin)` macro
+- **BREAKING**: `VIRTUAL_WRITE` event constant renamed to `VIRTUAL_RECEIVE`
+- Updated all examples to use new naming convention
+- Updated README with new method mapping table
+
+### Migration Guide
+
+```python
+# Old API (v3.1.x)
+device.virtual_write(0, value)
+
+@device.on_virtual_write(0)
+def handler(value):
+    pass
+
+# New API (v3.2.0)
+device.virtual_send(0, value)
+
+@device.on_virtual_receive(0)
+def handler(value):
+    pass
+```
+
 ## [3.1.0] - 2026-01-28
 
 ### Added

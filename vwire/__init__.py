@@ -15,12 +15,12 @@ Quick Start:
     device = Vwire("your_auth_token")
     device.connect()
     
-    # Write to virtual pins
-    device.virtual_write(0, 25.5)
-    device.virtual_write(1, 60)
+    # Send data to virtual pins
+    device.virtual_send(0, 25.5)
+    device.virtual_send(1, 60)
     
-    # Handle incoming commands
-    @device.on(Vwire.VIRTUAL_WRITE, 0)
+    # Handle incoming commands (like Arduino VWIRE_RECEIVE)
+    @device.on_virtual_receive(0)
     def v0_handler(value):
         print(f"V0 received: {value}")
     
@@ -47,7 +47,7 @@ from .timer import VwireTimer
 from .http_client import VwireHTTP
 from .utils import get_local_ip, get_version
 
-__version__ = "3.1.0"
+__version__ = "3.2.0"
 __all__ = [
     "Vwire",
     "VwireConfig", 

@@ -62,11 +62,11 @@ device = Vwire("your-auth-token")
 device.connect()
 
 # Send data to virtual pins
-device.virtual_write(0, 25.5)  # Temperature to V0
-device.virtual_write(1, 60)    # Humidity to V1
+device.virtual_send(0, 25.5)  # Temperature to V0
+device.virtual_send(1, 60)    # Humidity to V1
 
 # Handle incoming commands from dashboard
-@device.on_virtual_write(0)
+@device.on_virtual_receive(0)
 def handle_slider(value):
     print(f"Received: {value}")
 
@@ -83,7 +83,7 @@ device = Vwire("your-auth-token")
 
 def send_sensor_data():
     temp = read_temperature()
-    device.virtual_write(0, temp)
+    device.virtual_send(0, temp)
 
 # Send data every 5 seconds
 device.timer.set_interval(5000, send_sensor_data)
@@ -118,9 +118,9 @@ python 01_basic_send.py
 
 | Arduino | Python |
 |---------|--------|
-| `Vwire.virtualWrite(V0, value)` | `device.virtual_write(0, value)` |
+| `Vwire.virtualSend(V0, value)` | `device.virtual_send(0, value)` |
 | `Vwire.virtualRead(V0)` | `device.virtual_read(0)` |
-| `VWIRE_WRITE(V0) { ... }` | `@device.on_virtual_write(0)` |
+| `VWIRE_RECEIVE(V0) { ... }` | `@device.on_virtual_receive(0)` |
 | `timer.setInterval(1000, func)` | `device.timer.set_interval(1000, func)` |
 | `Vwire.begin(auth)` | `device.connect()` |
 | `Vwire.run()` | `device.run()` |

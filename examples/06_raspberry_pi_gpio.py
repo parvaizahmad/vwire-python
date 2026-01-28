@@ -169,7 +169,7 @@ last_button_state = 0
 # COMMAND HANDLERS (Dashboard → Pi)
 # =============================================================================
 
-@device.on_virtual_write(0)
+@device.on_virtual_receive(0)
 def handle_led_control(value):
     """Control LED from dashboard switch widget."""
     global led_state
@@ -181,7 +181,7 @@ def handle_led_control(value):
     print(f"LED: {status}")
 
 
-@device.on_virtual_write(1)
+@device.on_virtual_receive(1)
 def handle_pwm_brightness(value):
     """Control LED brightness from dashboard slider (0-100)."""
     global pwm_brightness
@@ -206,8 +206,8 @@ def send_sensor_data():
     temp, humidity = read_dht22()
     
     if temp is not None:
-        device.virtual_write(2, temp)
-        device.virtual_write(3, humidity)
+        device.virtual_send(2, temp)
+        device.virtual_send(3, humidity)
         print(f"[TEMP]  Temp: {temp}C | [HUM] Humidity: {humidity}%")
 
 
@@ -219,7 +219,7 @@ def check_button():
     
     if current_state != last_button_state:
         last_button_state = current_state
-        device.virtual_write(4, str(current_state))
+        device.virtual_send(4, str(current_state))
         
         if current_state:
             print("🔘 Button PRESSED!")

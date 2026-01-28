@@ -35,7 +35,7 @@ class VwireTimer:
         
         def send_temperature():
             temp = read_sensor()
-            device.virtual_write(0, temp)
+            device.virtual_send(0, temp)
         
         def check_buttons():
             # Check button states

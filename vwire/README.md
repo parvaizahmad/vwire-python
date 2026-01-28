@@ -17,7 +17,8 @@ The API is designed to be **consistent with the Arduino Vwire library**, making 
 | `Vwire.begin(ssid, pass)` | `connect()` | Connect to server |
 | `Vwire.run()` | `run()` | Process messages |
 | `Vwire.connected()` | `connected` | Check connection |
-| `Vwire.virtualSend(pin, v)` | `virtual_write(pin, v)` | Send data |
+| `Vwire.virtualSend(pin, v)` | `virtual_send(pin, v)` | Send data |
+| `VWIRE_RECEIVE(pin)` | `@on_virtual_receive(pin)` | Receive data |
 | `Vwire.syncVirtual(pin)` | `sync_virtual(pin)` | Sync pin value |
 | `Vwire.syncAll()` | `sync_all()` | Sync all pins |
 | `Vwire.notify(msg)` | `notify(msg)` | Push notification |
@@ -77,9 +78,9 @@ device = Vwire("your-auth-token-here")
 # Connect to server (uses secure TLS by default)
 device.connect()
 
-# Write data to virtual pins
-device.virtual_write(0, 25.5)  # Temperature
-device.virtual_write(1, 60)    # Humidity
+# Send data to virtual pins
+device.virtual_send(0, 25.5)  # Temperature
+device.virtual_send(1, 60)    # Humidity
 
 # Disconnect when done
 device.disconnect()
@@ -93,12 +94,12 @@ from vwire import Vwire
 device = Vwire("your-auth-token-here")
 
 # Handle commands from dashboard widgets
-@device.on_virtual_write(0)
+@device.on_virtual_receive(0)
 def handle_slider(value):
     print(f"Slider value: {value}")
     # Control your hardware here
 
-@device.on_virtual_write(1)
+@device.on_virtual_receive(1)
 def handle_button(value):
     if value == "1":
         print("Button pressed!")
@@ -117,7 +118,7 @@ device = Vwire("your-auth-token-here")
 
 def send_sensor_data():
     temp = read_temperature()  # Your sensor reading
-    device.virtual_write(0, temp)
+    device.virtual_send(0, temp)
 
 # Send data every 5 seconds
 device.timer.set_interval(5000, send_sensor_data)
@@ -158,8 +159,8 @@ Vwire(auth_token, config=None, server=None, port=None)
 
 | Method | Description |
 |--------|-------------|
-| `virtual_write(pin, value)` | Write value to virtual pin V0-V255. |
-| `virtual_write(pin, v1, v2, ...)` | Write multiple values (for arrays). |
+| `virtual_send(pin, value)` | Send value to virtual pin V0-V255. |
+| `virtual_send(pin, v1, v2, ...)` | Send multiple values (for arrays). |
 | `virtual_read(pin)` | Read last known value of virtual pin. |
 | `sync_virtual(pin)` | Request sync of specific pin from server. |
 | `sync_all()` | Request sync of all pins from server. |
@@ -167,13 +168,13 @@ Vwire(auth_token, config=None, server=None, port=None)
 #### Event Handlers
 
 ```python
-# Decorator syntax
-@device.on_virtual_write(pin)
+# Decorator syntax (matches Arduino VWIRE_RECEIVE macro)
+@device.on_virtual_receive(pin)
 def handler(value):
     pass
 
 # Generic syntax
-@device.on(Vwire.VIRTUAL_WRITE, pin)
+@device.on(Vwire.VIRTUAL_RECEIVE, pin)
 def handler(value):
     pass
 ```
@@ -265,11 +266,11 @@ from vwire import VwireHTTP
 
 client = VwireHTTP("your-auth-token")
 
-# Write to pins
-client.virtual_write(0, 25.5)
-client.virtual_write(1, 60)
+# Send to pins
+client.virtual_send(0, 25.5)
+client.virtual_send(1, 60)
 
-# Batch write
+# Batch send
 client.write_batch({
     "V0": 25.5,
     "V1": 60,
@@ -328,9 +329,9 @@ The Python library mirrors the Arduino Vwire library API:
 
 | Arduino | Python |
 |---------|--------|
-| `Vwire.virtualWrite(V0, value)` | `device.virtual_write(0, value)` |
+| `Vwire.virtualSend(V0, value)` | `device.virtual_send(0, value)` |
 | `Vwire.virtualRead(V0)` | `device.virtual_read(0)` |
-| `VWIRE_WRITE(V0) { ... }` | `@device.on_virtual_write(0)` |
+| `VWIRE_RECEIVE(V0) { ... }` | `@device.on_virtual_receive(0)` |
 | `timer.setInterval(1000, func)` | `device.timer.set_interval(1000, func)` |
 | `Vwire.begin(auth)` | `device.connect()` |
 | `Vwire.run()` | `device.run()` |

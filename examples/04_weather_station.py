@@ -164,18 +164,18 @@ def send_weather_data():
     light = weather.light_level()
     
     # Send to virtual pins
-    device.virtual_write(0, temp)
-    device.virtual_write(1, humidity)
-    device.virtual_write(2, pressure)
-    device.virtual_write(3, wind_speed)
-    device.virtual_write(4, wind_dir)
-    device.virtual_write(5, rain)
-    device.virtual_write(6, uv)
-    device.virtual_write(7, light)
+    device.virtual_send(0, temp)
+    device.virtual_send(1, humidity)
+    device.virtual_send(2, pressure)
+    device.virtual_send(3, wind_speed)
+    device.virtual_send(4, wind_dir)
+    device.virtual_send(5, rain)
+    device.virtual_send(6, uv)
+    device.virtual_send(7, light)
     
     # Send status message
     timestamp = datetime.now().strftime("%H:%M:%S")
-    device.virtual_write(10, f"Updated at {timestamp}")
+    device.virtual_send(10, f"Updated at {timestamp}")
     
     # Print to console
     print(f"[{timestamp}] [TEMP] {temp:5.1f}C | [HUM] {humidity:4.1f}% | "
@@ -214,7 +214,7 @@ def main():
     print("  V6: UV Index")
     print("  V7: Light Level (lux)")
     print()
-    print(f"Server: {config.server}:{config.mqtt_port}")
+    print(f"Server: {config.server}:{config.port}")
     print(f"Update interval: {SEND_INTERVAL/1000} seconds")
     print()
     
