@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-01-28
+
+### Added
+- **`notify(message)`** - Send push notifications (paid plans only)
+- **`email(subject, body)`** - Send email notifications (paid plans only)
+- **`log(message)`** - Send log messages to server for debugging
+- Arduino library method mapping table in README
+
+### Changed
+- **Version aligned** with Arduino library (3.1.0)
+- **Config property renamed**: `mqtt_port` → `port` (backward compatible via property alias)
+- **Config constants**: Added `DEFAULT_SERVER`, `DEFAULT_PORT_TCP`, `DEFAULT_PORT_TLS`, etc.
+- **Heartbeat interval**: Changed default from 10s to 30s (matches Arduino)
+- **Documentation**: Updated docstrings with Arduino equivalents
+
+### Fixed
+- Config factory methods now use consistent parameter naming
+
 ## [2.0.0] - 2026-01-20
 
 ### Added

@@ -47,7 +47,7 @@ from .timer import VwireTimer
 from .http_client import VwireHTTP
 from .utils import get_local_ip, get_version
 
-__version__ = "2.0.0"
+__version__ = "3.1.0"
 __all__ = [
     "Vwire",
     "VwireConfig", 
@@ -57,7 +57,7 @@ __all__ = [
     "get_version",
 ]
 
-# Version info
-VERSION_MAJOR = 2
-VERSION_MINOR = 0
+# Version info (aligned with Arduino library)
+VERSION_MAJOR = 3
+VERSION_MINOR = 1
 VERSION_PATCH = 0

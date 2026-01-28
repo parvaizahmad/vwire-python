@@ -3,7 +3,21 @@ Vwire Core Module - Main client implementation
 
 This module provides the core Vwire client class following the same
 architecture as the Arduino Vwire library: single-threaded with explicit
-loop() calls for MQTT processing.
+run() calls for MQTT processing.
+
+Arduino Library Equivalents:
+    Python                  Arduino
+    ------                  -------
+    Vwire(token)           Vwire.config(token)
+    connect()              Vwire.begin(ssid, password)
+    run()                  Vwire.run()
+    connected              Vwire.connected()
+    virtual_write(pin, v)  Vwire.virtualSend(pin, v)
+    sync_virtual(pin)      Vwire.syncVirtual(pin)
+    sync_all()             Vwire.syncAll()
+    notify(msg)            Vwire.notify(msg)
+    email(subj, body)      Vwire.email(subj, body)
+    log(msg)               Vwire.log(msg)
 """
 
 import ssl
@@ -42,6 +56,11 @@ class Vwire:
     Single-threaded implementation matching Arduino library architecture.
     Call run() in your main loop to process MQTT messages and timers.
     
+    Note on server/port configuration:
+        Like Arduino, server and port are internal settings configured via
+        VwireConfig. The client uses secure defaults (mqtt.vwire.io:8883 TLS).
+        Use VwireConfig factory methods for custom configurations.
+    
     Example:
         device = Vwire("your_auth_token")
         
@@ -50,7 +69,11 @@ class Vwire:
             print(f"V0 = {value}")
         
         if device.connect():
-            device.run()  # Blocks forever, or use run_once() in your own loop
+            device.run()  # Blocks forever
+        
+        # Send notifications (paid plans only)
+        device.notify("Sensor alert!")
+        device.email("Alert", "Temperature exceeded threshold")
     """
     
     # Event types
@@ -60,6 +83,8 @@ class Vwire:
     def __init__(self, auth_token: str, config: Optional[VwireConfig] = None):
         """
         Initialize Vwire client.
+        
+        Equivalent to Arduino's Vwire.config(authToken).
         
         Args:
             auth_token: Device authentication token from dashboard
@@ -174,6 +199,8 @@ class Vwire:
         """
         Connect to the Vwire server.
         
+        Equivalent to Arduino's begin() method.
+        
         Args:
             timeout: Connection timeout in seconds
             
@@ -184,12 +211,12 @@ class Vwire:
             return True
         
         self._state = ConnectionState.CONNECTING
-        logger.info(f"Connecting to {self._config.server}:{self._config.mqtt_port}...")
+        logger.info(f"Connecting to {self._config.server}:{self._config.port}...")
         
         try:
             self._mqtt.connect(
                 self._config.server,
-                self._config.mqtt_port,
+                self._config.port,
                 keepalive=self._config.keepalive
             )
             
@@ -344,6 +371,74 @@ class Vwire:
         
         topic = f"vwire/{self._auth_token}/sync"
         result = self._mqtt.publish(topic, "", qos=1)
+        return result.rc == mqtt.MQTT_ERR_SUCCESS
+    
+    # ========== Notifications (Arduino library equivalent methods) ==========
+    
+    def notify(self, message: str) -> bool:
+        """
+        Send push notification to device owner.
+        
+        Equivalent to Arduino's Vwire.notify(message).
+        Note: Only available for paid plans (PRO, PRO+, ENTERPRISE).
+        
+        Args:
+            message: Notification text
+            
+        Returns:
+            True if message was sent successfully
+        """
+        if not self.connected:
+            logger.warning("Cannot send notification: not connected")
+            return False
+        
+        topic = f"vwire/{self._auth_token}/notify"
+        result = self._mqtt.publish(topic, message, qos=1)
+        return result.rc == mqtt.MQTT_ERR_SUCCESS
+    
+    def email(self, subject: str, body: str) -> bool:
+        """
+        Send email notification to device owner.
+        
+        Equivalent to Arduino's Vwire.email(subject, body).
+        Note: Only available for paid plans (PRO, PRO+, ENTERPRISE).
+        
+        Args:
+            subject: Email subject
+            body: Email body text
+            
+        Returns:
+            True if message was sent successfully
+        """
+        if not self.connected:
+            logger.warning("Cannot send email: not connected")
+            return False
+        
+        import json
+        payload = json.dumps({"subject": subject, "body": body})
+        topic = f"vwire/{self._auth_token}/email"
+        result = self._mqtt.publish(topic, payload, qos=1)
+        return result.rc == mqtt.MQTT_ERR_SUCCESS
+    
+    def log(self, message: str) -> bool:
+        """
+        Send log message to server.
+        
+        Equivalent to Arduino's Vwire.log(message).
+        Useful for remote debugging and monitoring.
+        
+        Args:
+            message: Log text
+            
+        Returns:
+            True if message was sent successfully
+        """
+        if not self.connected:
+            logger.warning("Cannot send log: not connected")
+            return False
+        
+        topic = f"vwire/{self._auth_token}/log"
+        result = self._mqtt.publish(topic, message, qos=1)
         return result.rc == mqtt.MQTT_ERR_SUCCESS
     
     # ========== Event Handlers ==========

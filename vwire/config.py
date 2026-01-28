@@ -18,34 +18,46 @@ class TransportMode(Enum):
     WEBSOCKET = "ws"          # MQTT over WebSocket (insecure)
 
 
+# Default server and port constants (matching Arduino VwireConfig.h)
+DEFAULT_SERVER = "mqtt.vwire.io"
+DEFAULT_PORT_TCP = 1883
+DEFAULT_PORT_TLS = 8883
+DEFAULT_HEARTBEAT_INTERVAL = 30  # seconds (matches Arduino VWIRE_DEFAULT_HEARTBEAT_INTERVAL)
+DEFAULT_RECONNECT_INTERVAL = 5   # seconds (matches Arduino VWIRE_DEFAULT_RECONNECT_INTERVAL)
+
+
 @dataclass
 class VwireConfig:
     """
     Configuration for Vwire client.
     
     Provides secure defaults with MQTT over TLS as the primary communication method.
+    Server and port are treated as internal configuration (similar to Arduino where
+    they are set via config() method and stored privately).
+    
+    Note:
+        In Arduino, server/port are private members set via config(). Here they're
+        accessible but prefixed with underscore convention to indicate internal use.
+        Use the factory methods (development(), websocket(), custom()) for configuration.
     
     Attributes:
-        server: Server hostname (default: mqtt.vwire.io)
-        mqtt_port: MQTT broker port (default: 8883 for TLS)
+        server: Server hostname (default: mqtt.vwire.io) - internal
+        port: MQTT broker port (default: 8883 for TLS) - internal  
         http_port: HTTP API port for fallback (default: 443)
         transport: Transport mode (default: TCP_TLS)
-        keepalive: MQTT keepalive interval in seconds (default: 60)
+        keepalive: MQTT keepalive interval in seconds (default: 30)
         reconnect_interval: Seconds between reconnection attempts (default: 5)
         max_reconnect_attempts: Maximum reconnection attempts, 0 for infinite (default: 0)
         verify_ssl: Verify SSL certificates (default: True for production)
         ca_certs: Path to CA certificates file (optional)
         client_cert: Path to client certificate file (optional)
         client_key: Path to client private key file (optional)
-        heartbeat_interval: Heartbeat interval in seconds (default: 10)
+        heartbeat_interval: Heartbeat interval in seconds (default: 30)
         debug: Enable debug logging (default: False)
     
     Example:
         # Default configuration (secure, recommended)
         config = VwireConfig()
-        
-        # Custom server
-        config = VwireConfig(server="iot.mycompany.com")
         
         # Development/local testing (insecure)
         config = VwireConfig.development("192.168.1.100")
@@ -54,28 +66,36 @@ class VwireConfig:
         config = VwireConfig.websocket()
     """
     
-    server: str = "mqtt.vwire.io"
-    mqtt_port: int = 8883
+    # Server configuration (internal - use factory methods to modify)
+    # Named without underscore for dataclass compatibility but treated as internal
+    server: str = DEFAULT_SERVER
+    port: int = DEFAULT_PORT_TLS  # Renamed from mqtt_port to match Arduino 'port'
     http_port: int = 443
     transport: TransportMode = TransportMode.TCP_TLS
-    keepalive: int = 30  # Match Arduino lib: 30 second keepalive
-    reconnect_interval: int = 5
+    keepalive: int = 30  # Match Arduino: 30 second keepalive
+    reconnect_interval: int = DEFAULT_RECONNECT_INTERVAL
     max_reconnect_attempts: int = 0  # 0 = infinite
     verify_ssl: bool = True
     ca_certs: Optional[str] = None
     client_cert: Optional[str] = None
     client_key: Optional[str] = None
-    heartbeat_interval: int = 10
+    heartbeat_interval: int = DEFAULT_HEARTBEAT_INTERVAL
     debug: bool = False
     
+    # Backward compatibility alias
+    @property
+    def mqtt_port(self) -> int:
+        """Alias for port (backward compatibility)."""
+        return self.port
+    
     @classmethod
-    def development(cls, server: str = "localhost", port: int = 1883) -> "VwireConfig":
+    def development(cls, server: str = "localhost", mqtt_port: int = DEFAULT_PORT_TCP) -> "VwireConfig":
         """
         Create a development configuration (insecure, for local testing only).
         
         Args:
             server: Server hostname or IP (default: localhost)
-            port: MQTT port (default: 1883)
+            mqtt_port: MQTT port (default: 1883)
             
         Returns:
             VwireConfig configured for local development
@@ -85,7 +105,7 @@ class VwireConfig:
         """
         return cls(
             server=server,
-            mqtt_port=port,
+            port=mqtt_port,
             http_port=3001,
             transport=TransportMode.TCP,
             verify_ssl=False,
@@ -93,7 +113,7 @@ class VwireConfig:
         )
     
     @classmethod
-    def websocket(cls, server: str = "mqtt.vwire.io", port: int = 443) -> "VwireConfig":
+    def websocket(cls, server: str = DEFAULT_SERVER, mqtt_port: int = 443) -> "VwireConfig":
         """
         Create a WebSocket configuration (useful when MQTT ports are blocked).
         
@@ -101,14 +121,14 @@ class VwireConfig:
         
         Args:
             server: Server hostname (default: mqtt.vwire.io)
-            port: WebSocket port (default: 443)
+            mqtt_port: WebSocket port (default: 443)
             
         Returns:
             VwireConfig configured for WebSocket transport
         """
         return cls(
             server=server,
-            mqtt_port=port,
+            port=mqtt_port,
             transport=TransportMode.WEBSOCKET_TLS,
             verify_ssl=True
         )
@@ -117,7 +137,7 @@ class VwireConfig:
     def custom(
         cls,
         server: str,
-        mqtt_port: int = 8883,
+        mqtt_port: int = DEFAULT_PORT_TLS,
         use_tls: bool = True,
         use_websocket: bool = False,
         verify_ssl: bool = True
@@ -125,9 +145,11 @@ class VwireConfig:
         """
         Create a custom configuration.
         
+        Similar to Arduino's config(authToken, server, port) method.
+        
         Args:
             server: Server hostname
-            mqtt_port: MQTT broker port
+            mqtt_port: MQTT broker port (default: 8883 for TLS, use 1883 for TCP)
             use_tls: Enable TLS encryption
             use_websocket: Use WebSocket transport
             verify_ssl: Verify SSL certificates
@@ -142,7 +164,7 @@ class VwireConfig:
         
         return cls(
             server=server,
-            mqtt_port=mqtt_port,
+            port=mqtt_port,
             transport=transport,
             verify_ssl=verify_ssl
         )

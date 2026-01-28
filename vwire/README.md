@@ -3,10 +3,26 @@
 [![Python Version](https://img.shields.io/badge/python-3.8--3.13-blue.svg)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![PyPI Version](https://img.shields.io/pypi/v/vwire-iot.svg)](https://pypi.org/project/vwire-iot/)
+[![Arduino Compatible](https://img.shields.io/badge/Arduino-v3.1.0-teal.svg)](https://github.com/parvaizahmad/vwire)
 
 Official Python client library for the **Vwire IoT Platform** - enabling seamless communication between your Python applications and IoT devices.
 
 The API is designed to be **consistent with the Arduino Vwire library**, making it easy to port code between platforms and maintain a unified development experience.
+
+### Arduino ↔ Python Method Mapping
+
+| Arduino | Python | Description |
+|---------|--------|-------------|
+| `Vwire.config(token)` | `Vwire(token)` | Initialize client |
+| `Vwire.begin(ssid, pass)` | `connect()` | Connect to server |
+| `Vwire.run()` | `run()` | Process messages |
+| `Vwire.connected()` | `connected` | Check connection |
+| `Vwire.virtualSend(pin, v)` | `virtual_write(pin, v)` | Send data |
+| `Vwire.syncVirtual(pin)` | `sync_virtual(pin)` | Sync pin value |
+| `Vwire.syncAll()` | `sync_all()` | Sync all pins |
+| `Vwire.notify(msg)` | `notify(msg)` | Push notification |
+| `Vwire.email(s, b)` | `email(s, b)` | Send email |
+| `Vwire.log(msg)` | `log(msg)` | Send log message |
 
 > **Note:** Python 3.14+ has a known incompatibility with the paho-mqtt library. Please use Python 3.8-3.13.
 
@@ -162,14 +178,29 @@ def handler(value):
     pass
 ```
 
-#### Advanced Methods
+#### Notifications & Logging
 
-| Method | Description |
-|--------|-------------|
-| `set_property(pin, property, value)` | Set widget property (color, label, etc.). |
-| `log_event(event, description)` | Log event to server. |
-| `send_notification(message)` | Send push notification. |
-| `send_email(subject, body)` | Send email notification. |
+These methods match the Arduino library API. **Note:** `notify()` and `email()` are only available for paid plans (PRO, PRO+, ENTERPRISE).
+
+| Method | Arduino Equivalent | Description |
+|--------|-------------------|-------------|
+| `notify(message)` | `Vwire.notify(msg)` | Send push notification to device owner |
+| `email(subject, body)` | `Vwire.email(s, b)` | Send email to device owner |
+| `log(message)` | `Vwire.log(msg)` | Send log message to server |
+
+```python
+# Send notifications (paid plans only)
+device.notify("Temperature alert: exceeded 30°C!")
+
+# Send email (paid plans only)
+device.email(
+    "Sensor Alert", 
+    "Temperature has exceeded the configured threshold of 30°C."
+)
+
+# Send log message for debugging
+device.log("Sensor initialized successfully")
+```
 
 ### VwireConfig Class
 
